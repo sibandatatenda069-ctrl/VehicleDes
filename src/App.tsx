@@ -493,7 +493,7 @@ function BodyPanel({ vehicle, onChoose }: { vehicle: VehicleState; onChoose: (id
     <>
       <div className="panel-header">
         <div><span className="section-kicker">STARTING POINT</span><h2>Choose a body</h2></div>
-        <span className="panel-count">05</span>
+        <span className="panel-count">{String(bodies.length).padStart(2, '0')}</span>
       </div>
       <p className="panel-description">Pick a silhouette. Every body has smart attachment slots ready for your parts.</p>
       <div className="body-list">
@@ -501,6 +501,7 @@ function BodyPanel({ vehicle, onChoose }: { vehicle: VehicleState; onChoose: (id
           <button key={body.id} className={`body-card ${vehicle.bodyId === body.id ? 'selected' : ''}`} onClick={() => onChoose(body.id)}>
             <BodyThumb id={body.id} color={vehicle.bodyId === body.id ? vehicle.bodyColor : '#b8beb8'} />
             <span><small>{body.eyebrow}</small><b>{body.name}</b></span>
+            {body.id === 'muscle' && <em className="new-body-badge">NEW</em>}
             {vehicle.bodyId === body.id && <Check size={16} />}
           </button>
         ))}

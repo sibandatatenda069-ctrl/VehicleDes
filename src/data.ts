@@ -8,7 +8,7 @@ import {
   SquareDashed,
 } from 'lucide-react'
 
-export type BodyId = 'sports' | 'sedan' | 'suv' | 'truck' | 'van'
+export type BodyId = 'sports' | 'muscle' | 'sedan' | 'suv' | 'truck' | 'van'
 export type CategoryId = 'wheels' | 'lights' | 'grilles' | 'spoilers' | 'bumpers' | 'windows'
 export type SlotId =
   | 'wheel_fl'
@@ -64,6 +64,7 @@ export type VehicleState = {
 
 export const bodies: BodyDefinition[] = [
   { id: 'sports', name: 'Apex GT', eyebrow: 'Sports', length: 5.2, width: 2.18, lowerHeight: 0.7, cabinHeight: 0.78, wheelRadius: 0.57, cabinLength: 2.65, cabinX: -0.2 },
+  { id: 'muscle', name: 'Vandal R/T', eyebrow: 'Muscle', length: 5.3, width: 2.24, lowerHeight: 0.84, cabinHeight: 0.8, wheelRadius: 0.59, cabinLength: 2.48, cabinX: -0.34 },
   { id: 'sedan', name: 'Linea S', eyebrow: 'Sedan', length: 5.05, width: 2.12, lowerHeight: 0.78, cabinHeight: 0.92, wheelRadius: 0.53, cabinLength: 2.9, cabinX: -0.18 },
   { id: 'suv', name: 'Atlas X', eyebrow: 'SUV', length: 5.15, width: 2.25, lowerHeight: 0.96, cabinHeight: 1.18, wheelRadius: 0.59, cabinLength: 3.35, cabinX: -0.28 },
   { id: 'truck', name: 'Forge 150', eyebrow: 'Truck', length: 5.55, width: 2.23, lowerHeight: 0.94, cabinHeight: 1.15, wheelRadius: 0.62, cabinLength: 2.0, cabinX: 0.65 },
@@ -71,11 +72,11 @@ export const bodies: BodyDefinition[] = [
 ]
 
 export const categories: CategoryDefinition[] = [
-  { id: 'wheels', label: 'Wheels', icon: CircleDot, count: 8 },
-  { id: 'lights', label: 'Lights', icon: LampDesk, count: 6 },
+  { id: 'wheels', label: 'Wheels', icon: CircleDot, count: 7 },
+  { id: 'lights', label: 'Lights', icon: LampDesk, count: 5 },
   { id: 'grilles', label: 'Grilles', icon: Grid2X2, count: 5 },
-  { id: 'spoilers', label: 'Spoilers', icon: Sparkles, count: 4 },
-  { id: 'bumpers', label: 'Bumpers', icon: RectangleHorizontal, count: 5 },
+  { id: 'spoilers', label: 'Spoilers', icon: Sparkles, count: 5 },
+  { id: 'bumpers', label: 'Bumpers', icon: RectangleHorizontal, count: 4 },
   { id: 'windows', label: 'Windows', icon: SquareDashed, count: 4 },
 ]
 
@@ -83,6 +84,7 @@ export const parts: PartDefinition[] = [
   { id: 'wheel_turbine', name: 'Turbine S', category: 'wheels', meta: '20 in', accent: '#c8d0d0' },
   { id: 'wheel_forged', name: 'Forged V', category: 'wheels', meta: '21 in', accent: '#b3ff3f' },
   { id: 'wheel_classic', name: 'Heritage 5', category: 'wheels', meta: '19 in', accent: '#d6c29d' },
+  { id: 'wheel_deepdish', name: 'Magnum Deep', category: 'wheels', meta: '20 in · Wide', accent: '#d8ddd9' },
   { id: 'wheel_offroad', name: 'Terrain X', category: 'wheels', meta: '22 in', accent: '#8f958d' },
   { id: 'wheel_disc', name: 'Aero Disc', category: 'wheels', meta: '20 in', accent: '#dfe8e6' },
   { id: 'wheel_mesh', name: 'Mesh RS', category: 'wheels', meta: '21 in', accent: '#9f886f' },
@@ -90,17 +92,21 @@ export const parts: PartDefinition[] = [
   { id: 'light_round', name: 'Halo Round', category: 'lights', meta: 'LED ring', accent: '#fff5b0' },
   { id: 'light_slash', name: 'Slash DRL', category: 'lights', meta: 'Laser LED', accent: '#b8f2ff' },
   { id: 'light_classic', name: 'Classic Twin', category: 'lights', meta: 'Projector', accent: '#fff1ce' },
+  { id: 'light_quad', name: 'Quad Fire', category: 'lights', meta: 'Dual projector', accent: '#fff3c4' },
   { id: 'grille_hex', name: 'Hex Flow', category: 'grilles', meta: 'Open mesh', accent: '#5d6563' },
   { id: 'grille_bar', name: 'Linear 7', category: 'grilles', meta: 'Satin alloy', accent: '#c1cac7' },
   { id: 'grille_black', name: 'Blackout', category: 'grilles', meta: 'Closed panel', accent: '#252927' },
   { id: 'grille_chrome', name: 'Signature', category: 'grilles', meta: 'Chrome', accent: '#e5eceb' },
+  { id: 'grille_billet', name: 'Billet 12', category: 'grilles', meta: 'Polished alloy', accent: '#cbd1ce' },
   { id: 'spoiler_wing', name: 'Circuit Wing', category: 'spoilers', meta: 'High downforce', accent: '#202321' },
   { id: 'spoiler_lip', name: 'Ducktail', category: 'spoilers', meta: 'Low profile', accent: '#b3ff3f' },
   { id: 'spoiler_split', name: 'Aero Split', category: 'spoilers', meta: 'Carbon', accent: '#4f5552' },
   { id: 'spoiler_heritage', name: 'Heritage RS', category: 'spoilers', meta: 'Touring', accent: '#d4d8d6' },
+  { id: 'spoiler_muscle', name: 'Street Ducktail', category: 'spoilers', meta: 'Muscle profile', accent: '#313633' },
   { id: 'bumper_sport', name: 'Sport Aero', category: 'bumpers', meta: 'Street', accent: '#2f3431' },
   { id: 'bumper_clean', name: 'Clean Line', category: 'bumpers', meta: 'Minimal', accent: '#aeb4b1' },
   { id: 'bumper_rally', name: 'Rally Guard', category: 'bumpers', meta: 'Reinforced', accent: '#4b514e' },
+  { id: 'bumper_chrome', name: 'Chrome Blade', category: 'bumpers', meta: 'Heritage steel', accent: '#dbe1de' },
   { id: 'window_clear', name: 'Crystal', category: 'windows', meta: 'Clear glass', accent: '#9dd9df' },
   { id: 'window_smoke', name: 'Smoke 30', category: 'windows', meta: '30% tint', accent: '#4f6a6b' },
   { id: 'window_dark', name: 'Night', category: 'windows', meta: '70% tint', accent: '#202b2c' },
