@@ -6,11 +6,11 @@ VehicleDes is a browser-based 3D vehicle assembler for creators who need custom 
 
 - Five responsive vehicle bodies: sports, sedan, SUV, truck, and van
 - Smart attachment slots for wheels, lights, grilles, spoilers, bumpers, and windows
-- Sculpted compound-curved bodies with tapered noses, rounded shoulders, crowned hoods/decks, arched roofs, mirrors, door seams, handles, lighting, plates, exhausts, and underbody details
-- Dedicated curved front windshields, rear windscreens, side glass, structural A/B/C pillars, header rails, window sills, and panoramic roof panels
-- Realistic wheels with tread blocks, ventilated brake rotors, calipers, rim barrels, spokes, hubs, and lug nuts
-- GTA-era game-ready cabin detail: visible seats, dashboard, instrument display, steering wheel, console, axles, and suspension
-- Real-time preview with orbit, zoom, a reflection studio, physically based materials, ambient occlusion, subtle bloom, soft shadows, and an illuminated floor
+- AAA-style compound-curved bodies with tapered noses, rounded shoulders, separate crowned hood/deck panels, stamped character lines, arched roofs, mirrors, lighting, plates, exhausts, and underbody details
+- Dedicated compound-curved front windshields, rear windscreens, inward-tapered side glass, structural A/B/C pillars, header rails, window sills, and panoramic roof panels
+- High-detail wheels with individual tread blocks, drilled ventilated brake rotors, calipers, rim barrels, spokes, hubs, and lug nuts
+- Game-ready cabin detail: stitched and bolstered seats, seat belts, dashboard, illuminated instrument and infotainment displays, vents, rear-view mirror, steering wheel, console, axles, and suspension
+- Real-time preview with orbit, zoom, an HDR reflection studio, physically based clear-coat materials, ambient occlusion, selective bloom, SMAA, soft shadows, and a blurred reflective showroom floor
 - Per-part materials, metallic body paint, glass tint, and gloss/satin/matte clear-coat finishes
 - One-click part placement or “apply to all” for repeated slots
 - Undo/redo, random concepts, autosave, and portable project JSON
