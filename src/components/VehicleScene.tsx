@@ -94,62 +94,137 @@ function addGlassPath(target: THREE.Path | THREE.Shape, body: BodyDefinition, re
 }
 
 function shellGeometry(body: BodyDefinition) {
-  const { length: l, wheelRadius: wr, lowerHeight: lh, cabinHeight: ch, width } = body
-  const lowerTop = wr + lh
-  const roof = lowerTop + ch
-  const shape = new THREE.Shape()
+  const { length, width, wheelRadius, lowerHeight } = body
+  const xSegments = 18
+  const ringSegments = 24
+  const positions: number[] = []
+  const indices: number[] = []
 
-  shape.moveTo(l / 2 - 0.03, wr * 0.27)
-  shape.quadraticCurveTo(l / 2 + 0.1, wr + lh * 0.34, l / 2 - 0.13, lowerTop - lh * 0.12)
+  // A longitudinal super-ellipse gives the lower body compound curvature in all
+  // three axes. Nose, tail, shoulder and rocker widths are no longer planar.
+  for (let i = 0; i <= xSegments; i += 1) {
+    const t = i / xSegments
+    const x = -length / 2 + t * length
+    const longitudinalCrown = Math.pow(Math.sin(Math.PI * t), 0.55)
+    const noseBias = Math.max(0, (t - 0.68) / 0.32)
+    const tailBias = Math.max(0, (0.2 - t) / 0.2)
+    const halfWidth = width * 0.5 * (0.77 + longitudinalCrown * 0.23 - noseBias * 0.045 - tailBias * 0.025)
+    const halfHeight = lowerHeight * 0.5 * (0.72 + longitudinalCrown * 0.28)
+    const centerY = wheelRadius + lowerHeight * 0.47 + noseBias * 0.025
 
-  if (body.id === 'truck') {
-    shape.quadraticCurveTo(l * 0.37, lowerTop + 0.03, l * 0.2, lowerTop + 0.03)
-    shape.lineTo(l * 0.12, roof - ch * 0.13)
-    shape.quadraticCurveTo(l * 0.07, roof + 0.03, -l * 0.12, roof)
-    shape.lineTo(-l * 0.19, lowerTop + 0.06)
-    shape.lineTo(-l * 0.49, lowerTop + 0.01)
-  } else if (body.id === 'van') {
-    shape.quadraticCurveTo(l * 0.49, lowerTop + ch * 0.52, l * 0.35, roof - 0.05)
-    shape.quadraticCurveTo(0, roof + 0.07, -l * 0.43, roof - 0.02)
-    shape.quadraticCurveTo(-l * 0.51, roof - ch * 0.22, -l * 0.49, lowerTop + 0.02)
-  } else {
-    const frontRoofX = body.id === 'suv' ? l * 0.16 : l * 0.09
-    const rearRoofX = body.id === 'suv' ? -l * 0.22 : -l * 0.18
-    const hoodX = body.id === 'suv' ? l * 0.31 : l * 0.24
-    shape.quadraticCurveTo(l * 0.4, lowerTop + 0.04, hoodX, lowerTop + 0.05)
-    shape.quadraticCurveTo(frontRoofX + l * 0.08, lowerTop + ch * 0.22, frontRoofX, roof - ch * 0.1)
-    shape.quadraticCurveTo(frontRoofX - l * 0.06, roof + 0.04, rearRoofX, roof)
-    shape.quadraticCurveTo(rearRoofX - l * 0.08, roof - ch * 0.1, -l * 0.34, lowerTop + ch * 0.12)
-    shape.quadraticCurveTo(-l * 0.43, lowerTop + 0.04, -l * 0.49, lowerTop - 0.04)
+    for (let j = 0; j < ringSegments; j += 1) {
+      const angle = (j / ringSegments) * Math.PI * 2
+      const side = Math.sin(angle)
+      const vertical = Math.cos(angle)
+      // Exponents below one create automotive shoulder lines while retaining
+      // genuinely rounded corners and a softly crowned hood/deck surface.
+      const z = Math.sign(side) * Math.pow(Math.abs(side), 0.78) * halfWidth
+      const y = centerY + Math.sign(vertical) * Math.pow(Math.abs(vertical), 0.62) * halfHeight
+      positions.push(x, y, z)
+    }
   }
 
-  shape.quadraticCurveTo(-l / 2 - 0.08, wr + lh * 0.2, -l / 2 + 0.02, wr * 0.25)
-  shape.lineTo(-l * 0.43, wr * 0.12)
-  shape.quadraticCurveTo(-l * 0.17, wr * 0.03, 0, wr * 0.05)
-  shape.quadraticCurveTo(l * 0.17, wr * 0.03, l * 0.43, wr * 0.12)
-  shape.closePath()
+  for (let i = 0; i < xSegments; i += 1) {
+    for (let j = 0; j < ringSegments; j += 1) {
+      const nextJ = (j + 1) % ringSegments
+      const a = i * ringSegments + j
+      const b = (i + 1) * ringSegments + j
+      const c = (i + 1) * ringSegments + nextJ
+      const d = i * ringSegments + nextJ
+      indices.push(a, b, d, b, c, d)
+    }
+  }
 
-  // Actual openings keep the shell from reading as a solid toy block. The cabin
-  // cutout is closed again by separate glass and exposes the game-ready interior.
-  const glassHole = new THREE.Path()
-  addGlassPath(glassHole, body, true)
-  shape.holes.push(glassHole)
-  ;[l * 0.31, -l * 0.32].forEach((x) => {
-    const wheelOpening = new THREE.Path()
-    wheelOpening.absarc(x, wr, wr * 0.8, 0, Math.PI * 2, true)
-    shape.holes.push(wheelOpening)
-  })
+  // Close the sculpted nose and tail with radial caps.
+  const rearCenter = positions.length / 3
+  positions.push(-length / 2, wheelRadius + lowerHeight * 0.47, 0)
+  const frontCenter = positions.length / 3
+  positions.push(length / 2, wheelRadius + lowerHeight * 0.495, 0)
+  for (let j = 0; j < ringSegments; j += 1) {
+    const nextJ = (j + 1) % ringSegments
+    indices.push(rearCenter, nextJ, j)
+    const frontStart = xSegments * ringSegments
+    indices.push(frontCenter, frontStart + j, frontStart + nextJ)
+  }
 
-  const geometry = new THREE.ExtrudeGeometry(shape, {
-    depth: width,
-    steps: 1,
-    bevelEnabled: true,
-    bevelSegments: 4,
-    bevelSize: body.id === 'sports' ? 0.11 : 0.08,
-    bevelThickness: 0.07,
-    curveSegments: 20,
-  })
-  geometry.translate(0, 0, -width / 2)
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geometry.setIndex(indices)
+  geometry.computeVertexNormals()
+  geometry.computeBoundingSphere()
+  return geometry
+}
+
+function roofGeometry(body: BodyDefinition) {
+  const profile = glassProfile(body)
+  const xSegments = 12
+  const widthSegments = 10
+  const positions: number[] = []
+  const indices: number[] = []
+
+  for (let i = 0; i <= xSegments; i += 1) {
+    const t = i / xSegments
+    const x = THREE.MathUtils.lerp(profile.rearTop[0] - 0.08, profile.frontTop[0] + 0.08, t)
+    const baseY = THREE.MathUtils.lerp(profile.rearTop[1], profile.frontTop[1], t)
+    const longitudinalArch = Math.sin(Math.PI * t) * (body.id === 'van' ? 0.07 : 0.11)
+    const edgeWidth = body.width * (body.id === 'van' ? 0.43 : 0.39)
+    for (let j = 0; j <= widthSegments; j += 1) {
+      const across = (j / widthSegments) * 2 - 1
+      const lateralCrown = (1 - across * across) * 0.075
+      positions.push(x, baseY + longitudinalArch + lateralCrown + 0.08, across * edgeWidth)
+    }
+  }
+
+  for (let i = 0; i < xSegments; i += 1) {
+    for (let j = 0; j < widthSegments; j += 1) {
+      const row = widthSegments + 1
+      const a = i * row + j
+      const b = (i + 1) * row + j
+      const c = (i + 1) * row + j + 1
+      const d = i * row + j + 1
+      indices.push(a, b, d, b, c, d)
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geometry.setIndex(indices)
+  geometry.computeVertexNormals()
+  return geometry
+}
+
+function windshieldGeometry(body: BodyDefinition, rear = false) {
+  const profile = glassProfile(body)
+  const bottom = rear ? profile.rearBottom : profile.frontBottom
+  const top = rear ? profile.rearTop : profile.frontTop
+  const widthSegments = 14
+  const positions: number[] = []
+  const indices: number[] = []
+  const bottomHalfWidth = body.width * (rear ? 0.37 : 0.405)
+  const topHalfWidth = body.width * (rear ? 0.32 : 0.345)
+  const direction = rear ? -1 : 1
+
+  for (let row = 0; row <= 1; row += 1) {
+    for (let j = 0; j <= widthSegments; j += 1) {
+      const across = (j / widthSegments) * 2 - 1
+      const centerBulge = 1 - across * across
+      const x = THREE.MathUtils.lerp(bottom[0], top[0], row) + direction * centerBulge * 0.045
+      const y = THREE.MathUtils.lerp(bottom[1], top[1], row) + centerBulge * 0.025
+      const halfWidth = THREE.MathUtils.lerp(bottomHalfWidth, topHalfWidth, row)
+      positions.push(x, y, across * halfWidth)
+    }
+  }
+  for (let j = 0; j < widthSegments; j += 1) {
+    const a = j
+    const b = widthSegments + 1 + j
+    const c = widthSegments + 1 + j + 1
+    const d = j + 1
+    indices.push(a, b, d, b, c, d)
+  }
+
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geometry.setIndex(indices)
   geometry.computeVertexNormals()
   return geometry
 }
@@ -523,49 +598,75 @@ function VehicleInterior({ body }: { body: BodyDefinition }) {
   )
 }
 
+function FrameBeam({ from, to, color, thickness = 0.085, depth = 0.085 }: { from: [number, number, number]; to: [number, number, number]; color: string; thickness?: number; depth?: number }) {
+  const transform = useMemo(() => {
+    const start = new THREE.Vector3(...from)
+    const end = new THREE.Vector3(...to)
+    const direction = end.clone().sub(start)
+    const midpoint = start.clone().add(end).multiplyScalar(0.5)
+    const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().normalize())
+    return { midpoint, quaternion, length: direction.length() }
+  }, [from, to])
+  return (
+    <RoundedBox args={[thickness, transform.length, depth]} radius={Math.min(thickness, depth) * 0.32} smoothness={2} position={transform.midpoint} quaternion={transform.quaternion}>
+      <meshPhysicalMaterial color={color} metalness={0.25} roughness={0.28} clearcoat={0.55} />
+    </RoundedBox>
+  )
+}
+
 function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { vehicle: VehicleState; body: BodyDefinition; selectedSlot?: SlotId; onSlotClick: (slot: SlotId) => void }) {
   const sideGlass = useMemo(() => sideGlassGeometry(body), [body])
-  useEffect(() => () => sideGlass.dispose(), [sideGlass])
+  const frontGlass = useMemo(() => windshieldGeometry(body), [body])
+  const rearGlass = useMemo(() => windshieldGeometry(body, true), [body])
+  useEffect(() => () => {
+    sideGlass.dispose()
+    frontGlass.dispose()
+    rearGlass.dispose()
+  }, [sideGlass, frontGlass, rearGlass])
   const lowerTop = body.wheelRadius + body.lowerHeight
-  const roof = lowerTop + body.cabinHeight
+  const profile = glassProfile(body)
   const glassId = vehicle.parts.windows
-  const glassOpacity = glassId === 'window_clear' ? 0.42 : glassId === 'window_dark' ? 0.84 : glassId === 'window_bronze' ? 0.68 : 0.6
+  const glassOpacity = glassId === 'window_clear' ? 0.52 : glassId === 'window_dark' ? 0.9 : glassId === 'window_bronze' ? 0.76 : 0.72
   const glassColor = glassId === 'window_bronze' ? '#75634d' : vehicle.glassColor
   const glassMaterial = (
     <meshPhysicalMaterial
       color={glassColor}
       transparent
       opacity={glassOpacity}
-      transmission={glassId === 'window_clear' ? 0.42 : 0.14}
-      roughness={0.04}
-      metalness={0.08}
+      transmission={glassId === 'window_clear' ? 0.28 : 0.06}
+      thickness={0.035}
+      ior={1.45}
+      roughness={0.035}
+      metalness={0.12}
       clearcoat={1}
-      clearcoatRoughness={0.04}
+      clearcoatRoughness={0.025}
+      envMapIntensity={1.8}
+      depthWrite={false}
       side={THREE.DoubleSide}
-      emissive={selectedSlot === 'windows' ? '#426920' : '#000'}
-      emissiveIntensity={0.18}
+      emissive={selectedSlot === 'windows' ? '#426920' : '#061011'}
+      emissiveIntensity={selectedSlot === 'windows' ? 0.22 : 0.06}
     />
   )
 
-  const frontBottomX = body.id === 'van' ? body.length * 0.39 : body.id === 'truck' ? body.length * 0.19 : body.id === 'suv' ? body.length * 0.28 : body.length * 0.22
-  const frontTopX = body.id === 'van' ? body.length * 0.33 : body.id === 'truck' ? body.length * 0.1 : body.id === 'suv' ? body.length * 0.15 : body.length * 0.08
-  const rearBottomX = body.id === 'van' ? -body.length * 0.43 : body.id === 'truck' ? -body.length * 0.17 : -body.length * 0.32
-  const rearTopX = body.id === 'van' ? -body.length * 0.39 : body.id === 'truck' ? -body.length * 0.12 : body.id === 'suv' ? -body.length * 0.21 : -body.length * 0.18
-  const glassBottomY = lowerTop + 0.12
-  const glassTopY = roof - 0.14
-  const frontLength = Math.hypot(frontTopX - frontBottomX, glassTopY - glassBottomY)
-  const rearLength = Math.hypot(rearTopX - rearBottomX, glassTopY - glassBottomY)
-  const frontAngle = Math.atan2(-(frontTopX - frontBottomX), glassTopY - glassBottomY)
-  const rearAngle = Math.atan2(-(rearTopX - rearBottomX), glassTopY - glassBottomY)
+  const frontBottomX = profile.frontBottom[0]
+  const glassBottomY = profile.frontBottom[1]
   const pillarXs = body.id === 'truck' ? [-body.length * 0.015] : body.id === 'van' ? [body.length * 0.08, -body.length * 0.16] : [body.cabinX]
 
   return (
     <>
       {[-1, 1].map((side) => (
         <group key={`side-glass-${side}`}>
+          <RoundedBox
+            args={[Math.abs(profile.frontBottom[0] - profile.rearBottom[0]) + 0.12, 0.16, 0.09]}
+            radius={0.04}
+            smoothness={3}
+            position={[(profile.frontBottom[0] + profile.rearBottom[0]) / 2, lowerTop + 0.025, side * body.width * 0.445]}
+          >
+            <meshPhysicalMaterial color={vehicle.bodyColor} {...paintProperties(vehicle)} />
+          </RoundedBox>
           <mesh
             geometry={sideGlass}
-            position={[0, 0, side * (body.width / 2 + 0.085)]}
+            position={[0, 0, side * body.width * 0.445]}
             onClick={(event) => { event.stopPropagation(); onSlotClick('windows') }}
           >
             {glassMaterial}
@@ -587,7 +688,7 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
             <meshStandardMaterial color={vehicle.trimColor} metalness={0.35} roughness={0.3} />
           </mesh>
           {pillarXs.map((x) => (
-            <mesh key={`seam-${x}`} position={[x, lowerTop - body.lowerHeight * 0.44, side * (body.width / 2 + 0.113)]}>
+            <mesh key={`seam-${x}`} position={[x, lowerTop - body.lowerHeight * 0.44, side * body.width * 0.5]}>
               <boxGeometry args={[0.012, body.lowerHeight * 0.84, 0.012]} />
               <meshBasicMaterial color="#212520" transparent opacity={0.5} />
             </mesh>
@@ -595,19 +696,43 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
         </group>
       ))}
 
-      {/* front and rear laminated glass */}
-      <mesh
-        position={[(frontBottomX + frontTopX) / 2 + 0.015, (glassBottomY + glassTopY) / 2, 0]}
-        rotation={[0, 0, frontAngle]}
-        onClick={(event) => { event.stopPropagation(); onSlotClick('windows') }}
-      >
-        <boxGeometry args={[0.035, frontLength, body.width * 0.8]} />
+      {/* Dedicated compound-curved front windshield and rear glass. These are
+          separate exportable surfaces rather than dark boxes painted on a cabin. */}
+      <mesh geometry={frontGlass} renderOrder={3} onClick={(event) => { event.stopPropagation(); onSlotClick('windows') }} name="Front_Windshield">
         {glassMaterial}
       </mesh>
-      <mesh position={[(rearBottomX + rearTopX) / 2 - 0.015, (glassBottomY + glassTopY) / 2, 0]} rotation={[0, 0, rearAngle]} onClick={(event) => { event.stopPropagation(); onSlotClick('windows') }}>
-        <boxGeometry args={[0.035, rearLength, body.width * 0.76]} />
+      <mesh geometry={rearGlass} renderOrder={3} onClick={(event) => { event.stopPropagation(); onSlotClick('windows') }} name="Rear_Windshield">
         {glassMaterial}
       </mesh>
+
+      {/* Structural A/C pillars, roof rails and glass header rails clearly frame
+          both windscreens from every camera angle. */}
+      {[-1, 1].map((side) => {
+        const frontBottom: [number, number, number] = [profile.frontBottom[0], profile.frontBottom[1], side * body.width * 0.405]
+        const frontTop: [number, number, number] = [profile.frontTop[0], profile.frontTop[1] + 0.04, side * body.width * 0.345]
+        const rearTop: [number, number, number] = [profile.rearTop[0], profile.rearTop[1] + 0.04, side * body.width * 0.32]
+        const rearBottom: [number, number, number] = [profile.rearBottom[0], profile.rearBottom[1], side * body.width * 0.37]
+        return (
+          <group key={`cabin-frame-${side}`}>
+            <FrameBeam from={frontBottom} to={frontTop} color={vehicle.bodyColor} thickness={0.095} depth={0.11} />
+            <FrameBeam from={frontTop} to={rearTop} color={vehicle.bodyColor} thickness={0.095} depth={0.11} />
+            <FrameBeam from={rearTop} to={rearBottom} color={vehicle.bodyColor} thickness={0.1} depth={0.11} />
+            <FrameBeam from={rearBottom} to={frontBottom} color={vehicle.bodyColor} thickness={0.075} depth={0.1} />
+          </group>
+        )
+      })}
+      <RoundedBox args={[0.075, 0.075, body.width * 0.7]} radius={0.025} smoothness={2} position={[profile.frontTop[0], profile.frontTop[1] + 0.04, 0]}>
+        <meshPhysicalMaterial color={vehicle.bodyColor} {...paintProperties(vehicle)} />
+      </RoundedBox>
+      <RoundedBox args={[0.075, 0.075, body.width * 0.65]} radius={0.025} smoothness={2} position={[profile.rearTop[0], profile.rearTop[1] + 0.04, 0]}>
+        <meshPhysicalMaterial color={vehicle.bodyColor} {...paintProperties(vehicle)} />
+      </RoundedBox>
+      <RoundedBox args={[0.13, 0.1, body.width * 0.83]} radius={0.035} smoothness={3} position={[profile.frontBottom[0], profile.frontBottom[1] - 0.025, 0]}>
+        <meshPhysicalMaterial color={vehicle.bodyColor} {...paintProperties(vehicle)} />
+      </RoundedBox>
+      <RoundedBox args={[0.13, 0.1, body.width * 0.76]} radius={0.035} smoothness={3} position={[profile.rearBottom[0], profile.rearBottom[1] - 0.025, 0]}>
+        <meshPhysicalMaterial color={vehicle.bodyColor} {...paintProperties(vehicle)} />
+      </RoundedBox>
 
       {/* separate wiper arms and blades sit proud of the windscreen */}
       {[-0.32, 0.32].map((z, index) => (
@@ -715,19 +840,26 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
 
 function BodyShell({ vehicle, body }: { vehicle: VehicleState; body: BodyDefinition }) {
   const geometry = useMemo(() => shellGeometry(body), [body])
-  useEffect(() => () => geometry.dispose(), [geometry])
+  const roof = useMemo(() => roofGeometry(body), [body])
+  useEffect(() => () => {
+    geometry.dispose()
+    roof.dispose()
+  }, [geometry, roof])
   const lowerTop = body.wheelRadius + body.lowerHeight
 
   return (
     <>
-      <mesh geometry={geometry} castShadow receiveShadow name={`${body.name}_BodyShell`}>
+      <mesh geometry={geometry} castShadow receiveShadow name={`${body.name}_SculptedBody`}>
         <meshPhysicalMaterial color={vehicle.bodyColor} {...paintProperties(vehicle)} />
       </mesh>
+      <mesh geometry={roof} castShadow name={`${body.name}_CurvedRoof`}>
+        <meshPhysicalMaterial color={vehicle.bodyColor} {...paintProperties(vehicle)} side={THREE.DoubleSide} />
+      </mesh>
       <FenderArches body={body} vehicle={vehicle} />
-      {/* dark panoramic roof insert */}
+      {/* inset panoramic panel follows the new arched roof as a contrasting detail */}
       {body.id !== 'truck' && (
-        <RoundedBox args={[body.cabinLength * 0.4, 0.035, body.width * 0.58]} radius={0.1} smoothness={3} position={[body.cabinX - 0.03, lowerTop + body.cabinHeight + 0.045, 0]}>
-          <meshPhysicalMaterial color="#172122" metalness={0.35} roughness={0.08} clearcoat={1} />
+        <RoundedBox args={[body.cabinLength * 0.34, 0.025, body.width * 0.48]} radius={0.12} smoothness={4} position={[body.cabinX - 0.03, lowerTop + body.cabinHeight + 0.055, 0]}>
+          <meshPhysicalMaterial color="#142021" metalness={0.4} roughness={0.06} clearcoat={1} />
         </RoundedBox>
       )}
       {/* pickup bed liner */}
