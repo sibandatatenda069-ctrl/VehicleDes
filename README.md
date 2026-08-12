@@ -4,7 +4,9 @@ VehicleDes is a browser-based 3D vehicle assembler for creators who need custom 
 
 ## Features
 
-- Six responsive vehicle bodies: sports, muscle, sedan, SUV, truck, and van
+- Six responsive vehicle families: sports, muscle, sedan, SUV, truck, and van
+- Eighteen selectable design generations—three per body—with distinct years, dimensions, glass angles, surfacing language, trim, and proportions
+- Progressive first-frame loading: usable geometry appears before reflections and post-processing stream in, with adaptive pixel density for slower devices
 - Dedicated Vandal R/T muscle-car architecture with a long power-dome hood, shaker intake, squared shoulders, flared quarters, wide tires, twin stripes, and side pipes
 - Smart attachment slots for wheels, lights, grilles, spoilers, bumpers, and windows
 - Muscle-focused library additions: deep-dish wheels, quad projectors, billet grille, street ducktail, and chrome bumpers

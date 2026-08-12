@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Bloom, EffectComposer, N8AO, SMAA, Vignette } from '@react-three/postprocessing'
 import {
+  AdaptiveDpr,
   ContactShadows,
   Environment,
   Grid,
@@ -10,12 +10,13 @@ import {
   OrbitControls,
   RoundedBox,
 } from '@react-three/drei'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import type { Group, Mesh, Object3D } from 'three'
 import * as THREE from 'three'
 import type { BodyDefinition, CategoryId, SlotId, VehicleState } from '../data'
 import { bodyById, categorySlots, partById } from '../data'
 
+const StudioEffects = lazy(() => import('./StudioEffects'))
 const wheelSlots: SlotId[] = ['wheel_fl', 'wheel_fr', 'wheel_rl', 'wheel_rr']
 
 type SceneProps = {
@@ -52,8 +53,8 @@ function glassProfile(body: BodyDefinition): GlassProfile {
   if (body.id === 'truck') {
     return {
       frontBottom: [l * 0.16, lowerTop + 0.12],
-      frontTop: [l * 0.1, roof - 0.16],
-      rearTop: [-l * 0.1, roof - 0.12],
+      frontTop: [l * (body.generationStyle === 'classic' ? 0.135 : body.generationStyle === 'revival' ? 0.115 : 0.1), roof - 0.16],
+      rearTop: [-l * (body.generationStyle === 'classic' ? 0.135 : body.generationStyle === 'revival' ? 0.115 : 0.1), roof - 0.12],
       rearBottom: [-l * 0.15, lowerTop + 0.12],
       roofControl: [0, roof - 0.07],
     }
@@ -61,8 +62,8 @@ function glassProfile(body: BodyDefinition): GlassProfile {
   if (body.id === 'van') {
     return {
       frontBottom: [l * 0.36, lowerTop + 0.1],
-      frontTop: [l * 0.31, roof - 0.15],
-      rearTop: [-l * 0.35, roof - 0.14],
+      frontTop: [l * (body.generationStyle === 'classic' ? 0.345 : body.generationStyle === 'revival' ? 0.325 : 0.31), roof - 0.15],
+      rearTop: [-l * (body.generationStyle === 'classic' ? 0.385 : body.generationStyle === 'revival' ? 0.365 : 0.35), roof - 0.14],
       rearBottom: [-l * 0.4, lowerTop + 0.1],
       roofControl: [0, roof - 0.07],
     }
@@ -70,25 +71,29 @@ function glassProfile(body: BodyDefinition): GlassProfile {
   if (body.id === 'muscle') {
     return {
       frontBottom: [l * 0.17, lowerTop + 0.1],
-      frontTop: [l * 0.055, roof - 0.14],
-      rearTop: [-l * 0.17, roof - 0.11],
+      frontTop: [l * (body.generationStyle === 'classic' ? 0.115 : body.generationStyle === 'revival' ? 0.08 : 0.055), roof - 0.14],
+      rearTop: [-l * (body.generationStyle === 'classic' ? 0.22 : body.generationStyle === 'revival' ? 0.19 : 0.17), roof - 0.11],
       rearBottom: [-l * 0.27, lowerTop + 0.1],
       roofControl: [body.cabinX, roof - 0.035],
     }
   }
   return {
     frontBottom: [body.id === 'suv' ? l * 0.26 : l * 0.2, lowerTop + 0.1],
-    frontTop: [body.id === 'suv' ? l * 0.13 : l * 0.07, roof - 0.14],
-    rearTop: [body.id === 'suv' ? -l * 0.19 : -l * 0.16, roof - 0.12],
+    frontTop: [body.id === 'suv'
+      ? l * (body.generationStyle === 'classic' ? 0.22 : body.generationStyle === 'revival' ? 0.17 : 0.13)
+      : l * (body.generationStyle === 'classic' ? 0.145 : body.generationStyle === 'revival' ? 0.1 : 0.07), roof - 0.14],
+    rearTop: [body.id === 'suv'
+      ? -l * (body.generationStyle === 'classic' ? 0.26 : body.generationStyle === 'revival' ? 0.22 : 0.19)
+      : -l * (body.generationStyle === 'classic' ? 0.23 : body.generationStyle === 'revival' ? 0.19 : 0.16), roof - 0.12],
     rearBottom: [body.id === 'suv' ? -l * 0.3 : -l * 0.29, lowerTop + 0.1],
-    roofControl: [body.cabinX, roof - 0.05],
+    roofControl: [body.cabinX, roof - (body.generationStyle === 'classic' ? 0.09 : 0.05)],
   }
 }
 
 function shellGeometry(body: BodyDefinition) {
   const { length, width, wheelRadius, lowerHeight } = body
-  const xSegments = 18
-  const ringSegments = 24
+  const xSegments = body.generationStyle === 'classic' ? 14 : 18
+  const ringSegments = body.generationStyle === 'classic' ? 20 : 24
   const positions: number[] = []
   const indices: number[] = []
 
@@ -100,21 +105,27 @@ function shellGeometry(body: BodyDefinition) {
     const longitudinalCrown = Math.pow(Math.sin(Math.PI * t), 0.55)
     const noseBias = Math.max(0, (t - 0.68) / 0.32)
     const tailBias = Math.max(0, (0.2 - t) / 0.2)
+    const classic = body.generationStyle === 'classic'
+    const revival = body.generationStyle === 'revival'
     const muscleFlare = body.id === 'muscle'
       ? Math.exp(-Math.pow((t - 0.81) / 0.11, 2)) * 0.035 + Math.exp(-Math.pow((t - 0.18) / 0.11, 2)) * 0.045
       : 0
-    const noseTaper = body.id === 'muscle' ? 0.018 : 0.045
-    const halfWidth = width * 0.5 * (0.77 + longitudinalCrown * 0.23 - noseBias * noseTaper - tailBias * 0.025 + muscleFlare)
-    const halfHeight = lowerHeight * 0.5 * (0.72 + longitudinalCrown * 0.28)
-    const centerY = wheelRadius + lowerHeight * 0.47 + noseBias * (body.id === 'muscle' ? 0.055 : 0.025)
+    const generationFlare = classic
+      ? Math.exp(-Math.pow((t - 0.81) / 0.14, 2)) * 0.014 + Math.exp(-Math.pow((t - 0.18) / 0.14, 2)) * 0.014
+      : 0
+    const noseTaper = classic ? 0.012 : body.id === 'muscle' ? 0.018 : revival ? 0.032 : 0.045
+    const halfWidth = width * 0.5 * (0.77 + longitudinalCrown * 0.23 - noseBias * noseTaper - tailBias * (classic ? 0.01 : 0.025) + muscleFlare + generationFlare)
+    const halfHeight = lowerHeight * 0.5 * ((classic ? 0.79 : 0.72) + longitudinalCrown * (classic ? 0.21 : 0.28))
+    const centerY = wheelRadius + lowerHeight * 0.47 + noseBias * (body.id === 'muscle' ? 0.055 : classic ? 0.012 : 0.025)
 
     for (let j = 0; j < ringSegments; j += 1) {
       const angle = (j / ringSegments) * Math.PI * 2
       const side = Math.sin(angle)
       const vertical = Math.cos(angle)
-      // Muscle shoulders stay deliberately squarer; other bodies retain a softer crown.
-      const sideExponent = body.id === 'muscle' ? 0.66 : 0.78
-      const verticalExponent = body.id === 'muscle' ? 0.54 : 0.62
+      // Each generation has its own surfacing language: crisp classics, softer
+      // revivals and tightly crowned modern panels.
+      const sideExponent = classic ? 0.55 : body.id === 'muscle' ? 0.66 : revival ? 0.72 : 0.82
+      const verticalExponent = classic ? 0.48 : body.id === 'muscle' ? 0.54 : revival ? 0.58 : 0.66
       const z = Math.sign(side) * Math.pow(Math.abs(side), sideExponent) * halfWidth
       const y = centerY + Math.sign(vertical) * Math.pow(Math.abs(vertical), verticalExponent) * halfHeight
       positions.push(x, y, z)
@@ -1010,7 +1021,22 @@ function BodyShell({ vehicle, body }: { vehicle: VehicleState; body: BodyDefinit
         <torusGeometry args={[0.105, 0.012, 8, 32]} />
         <meshStandardMaterial color={vehicle.trimColor} metalness={0.45} roughness={0.34} />
       </mesh>
-      {body.id === 'sports' && [-0.36, 0.36].map((z) => (
+      {body.generationStyle === 'classic' && [-1, 1].map((side) => (
+        <FrameBeam
+          key={`classic-belt-${side}`}
+          from={[body.length * 0.45, body.wheelRadius + body.lowerHeight * 0.62, side * body.width * 0.502]}
+          to={[-body.length * 0.45, body.wheelRadius + body.lowerHeight * 0.58, side * body.width * 0.502]}
+          color="#c9d0cd"
+          thickness={0.026}
+          depth={0.025}
+        />
+      ))}
+      {body.generationStyle === 'modern' && body.id !== 'truck' && body.id !== 'van' && [-1, 1].map((side) => (
+        <RoundedBox key={`modern-fender-vent-${side}`} args={[0.32, 0.15, 0.022]} radius={0.035} smoothness={3} position={[body.length * 0.255, body.wheelRadius + body.lowerHeight * 0.55, side * body.width * 0.505]} rotation={[0, 0, -0.14]}>
+          <meshStandardMaterial color="#101411" metalness={0.4} roughness={0.3} />
+        </RoundedBox>
+      ))}
+      {body.id === 'sports' && body.generationStyle === 'modern' && [-0.36, 0.36].map((z) => (
         <RoundedBox key={`hood-vent-${z}`} args={[0.34, 0.018, 0.12]} radius={0.04} smoothness={3} position={[body.length * 0.34, lowerTop + 0.095, z]} rotation={[0, 0, -0.025]}>
           <meshStandardMaterial color="#111512" metalness={0.42} roughness={0.32} />
         </RoundedBox>
@@ -1042,7 +1068,7 @@ function BodyShell({ vehicle, body }: { vehicle: VehicleState; body: BodyDefinit
         </>
       )}
       {/* inset panoramic panel follows the new arched roof as a contrasting detail */}
-      {body.id !== 'truck' && body.id !== 'muscle' && (
+      {body.generationStyle === 'modern' && body.id !== 'truck' && body.id !== 'muscle' && (
         <RoundedBox args={[body.cabinLength * 0.34, 0.025, body.width * 0.48]} radius={0.12} smoothness={4} position={[body.cabinX - 0.03, lowerTop + body.cabinHeight + 0.055, 0]}>
           <meshPhysicalMaterial color="#142021" metalness={0.4} roughness={0.06} clearcoat={1} />
         </RoundedBox>
@@ -1072,7 +1098,7 @@ function BodyShell({ vehicle, body }: { vehicle: VehicleState; body: BodyDefinit
 }
 
 function VehicleModel({ vehicle, activeCategory, pendingPart, selectedSlot, showSlots, onSlotClick, onVehicleReady }: ModelProps) {
-  const body = bodyById(vehicle.bodyId)
+  const body = useMemo(() => bodyById(vehicle.bodyId, vehicle.generationId), [vehicle.bodyId, vehicle.generationId])
   const root = useRef<Group>(null)
 
   useEffect(() => {
@@ -1128,9 +1154,9 @@ function CameraRig({ resetKey }: { resetKey: number }) {
   return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={0.075} minDistance={5.2} maxDistance={13} minPolarAngle={0.32} maxPolarAngle={Math.PI / 2.04} target={[0, 0.88, 0]} />
 }
 
-function StudioEnvironment() {
+function StudioEnvironment({ enhanced }: { enhanced: boolean }) {
   return (
-    <Environment resolution={256} background={false}>
+    <Environment resolution={enhanced ? 256 : 128} background={false}>
       <Lightformer form="rect" intensity={5} color="#ffffff" position={[0, 6, -5]} rotation={[Math.PI / 2, 0, 0]} scale={[10, 4, 1]} />
       <Lightformer form="rect" intensity={3} color="#dff4ff" position={[5, 2.5, 1]} rotation={[0, Math.PI / 2, 0]} scale={[5, 2, 1]} />
       <Lightformer form="rect" intensity={2.4} color="#f6ffdf" position={[-4, 3, 2]} rotation={[0, -Math.PI / 2, 0]} scale={[4, 2, 1]} />
@@ -1141,51 +1167,62 @@ function StudioEnvironment() {
 
 export default function VehicleScene(props: SceneProps) {
   const [ready, setReady] = useState(false)
+  const [enhanced, setEnhanced] = useState(false)
   const background = useMemo(() => new THREE.Color('#d6dad4'), [])
+
+  // Render usable geometry first, then stream in the expensive reflection and
+  // post-processing passes after the first frame is visible.
+  useEffect(() => {
+    if (!ready) return
+    const timer = window.setTimeout(() => setEnhanced(true), 420)
+    return () => window.clearTimeout(timer)
+  }, [ready])
 
   return (
     <div className="canvas-shell">
       <Canvas
         shadows
-        dpr={[1, 1.8]}
-        gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping }}
+        dpr={[1, enhanced ? 1.8 : 1.25]}
+        gl={{ antialias: true, preserveDrawingBuffer: true, toneMapping: THREE.ACESFilmicToneMapping, powerPreference: 'high-performance', stencil: false }}
         camera={{ fov: 34, position: [7.3, 3.8, 7.6], near: 0.1, far: 100 }}
         onCreated={({ gl }) => {
           gl.setClearColor(background)
           gl.toneMappingExposure = 1.08
-          setReady(true)
+          requestAnimationFrame(() => setReady(true))
         }}
       >
         <fog attach="fog" args={['#d6dad4', 11, 22]} />
         <ambientLight intensity={0.7} />
         <hemisphereLight args={['#f8ffff', '#70786f', 1.25]} />
-        <directionalLight position={[5, 9, 6]} intensity={2.7} castShadow shadow-mapSize={[2048, 2048]} shadow-camera-far={20} shadow-camera-left={-7} shadow-camera-right={7} shadow-camera-top={7} shadow-camera-bottom={-7} shadow-bias={-0.00035} />
+        <directionalLight position={[5, 9, 6]} intensity={2.7} castShadow shadow-mapSize={[enhanced ? 2048 : 1024, enhanced ? 2048 : 1024]} shadow-camera-far={20} shadow-camera-left={-7} shadow-camera-right={7} shadow-camera-top={7} shadow-camera-bottom={-7} shadow-bias={-0.00035} />
         <directionalLight position={[-4, 3, -5]} intensity={0.9} color="#c7dce3" />
-        <StudioEnvironment />
+        <StudioEnvironment enhanced={enhanced} />
         <VehicleModel {...props} />
         <mesh position={[0, -0.075, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <planeGeometry args={[40, 40]} />
-          <MeshReflectorMaterial
-            color="#cbd0ca"
-            metalness={0.08}
-            roughness={0.78}
-            blur={[280, 100]}
-            resolution={512}
-            mixBlur={1.2}
-            mixStrength={0.32}
-            depthScale={0.35}
-            minDepthThreshold={0.35}
-            maxDepthThreshold={1.4}
-          />
+          {enhanced ? (
+            <MeshReflectorMaterial
+              color="#cbd0ca"
+              metalness={0.08}
+              roughness={0.78}
+              blur={[280, 100]}
+              resolution={512}
+              mixBlur={1.2}
+              mixStrength={0.32}
+              depthScale={0.35}
+              minDepthThreshold={0.35}
+              maxDepthThreshold={1.4}
+            />
+          ) : <meshStandardMaterial color="#cbd0ca" roughness={0.82} metalness={0.05} />}
         </mesh>
-        <ContactShadows position={[0, -0.015, 0]} scale={12} blur={2.1} opacity={0.54} far={7} resolution={512} color="#252a25" />
+        <ContactShadows position={[0, -0.015, 0]} scale={12} blur={2.1} opacity={0.54} far={7} resolution={enhanced ? 512 : 256} color="#252a25" />
         <Grid position={[0, -0.025, 0]} args={[30, 30]} cellSize={0.5} cellThickness={0.38} cellColor="#b3b8b1" sectionSize={2.5} sectionThickness={0.7} sectionColor="#9fa59e" fadeDistance={14} fadeStrength={1.7} infiniteGrid />
-        <EffectComposer multisampling={0}>
-          <N8AO halfRes quality="medium" aoRadius={0.42} distanceFalloff={0.85} intensity={1.45} color="#20251f" />
-          <Bloom intensity={0.38} luminanceThreshold={1.05} luminanceSmoothing={0.22} mipmapBlur />
-          <Vignette offset={0.35} darkness={0.2} />
-          <SMAA />
-        </EffectComposer>
+        {enhanced && (
+          <Suspense fallback={null}>
+            <StudioEffects />
+          </Suspense>
+        )}
+        <AdaptiveDpr pixelated />
         <CameraRig resetKey={props.viewResetKey} />
       </Canvas>
       {!ready && <div className="canvas-loading">Preparing studio…</div>}

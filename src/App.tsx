@@ -29,8 +29,10 @@ import {
 import {
   bodies,
   bodyById,
+  bodyGenerations,
   categories,
   categorySlots,
+  defaultGeneration,
   initialVehicle,
   paintSwatches,
   partById,
@@ -49,10 +51,19 @@ type Toast = { id: number; message: string; kind?: 'success' | 'neutral' }
 
 const cloneVehicle = (value: VehicleState): VehicleState => JSON.parse(JSON.stringify(value))
 
+function normalizeVehicle(value: Partial<VehicleState>): VehicleState {
+  const bodyId = value.bodyId && bodies.some((body) => body.id === value.bodyId) ? value.bodyId : initialVehicle.bodyId
+  const requestedGeneration = value.generationId
+  const generationId = bodyGenerations[bodyId].some((generation) => generation.id === requestedGeneration)
+    ? requestedGeneration!
+    : defaultGeneration(bodyId).id
+  return { ...initialVehicle, ...value, bodyId, generationId }
+}
+
 function loadVehicle(): VehicleState {
   try {
     const saved = localStorage.getItem('vehicledes-project')
-    if (saved) return { ...initialVehicle, ...JSON.parse(saved) }
+    if (saved) return normalizeVehicle(JSON.parse(saved))
   } catch {
     // Start with the bundled concept when storage is unavailable.
   }
@@ -123,7 +134,7 @@ function App() {
   const activeCategory: CategoryId = activeTool === 'body' || activeTool === 'paint' ? 'wheels' : activeTool
   const visibleParts = useMemo(() => parts.filter((part) => part.category === activeCategory && part.name.toLowerCase().includes(query.toLowerCase())), [activeCategory, query])
   const selectedPart = partById(selectedSlot ? vehicle.parts[selectedSlot] : undefined)
-  const body = bodyById(vehicle.bodyId)
+  const body = useMemo(() => bodyById(vehicle.bodyId, vehicle.generationId), [vehicle.bodyId, vehicle.generationId])
   const partCount = Object.keys(vehicle.parts).length
 
   const notify = useCallback((message: string, kind: Toast['kind'] = 'success') => {
@@ -198,9 +209,18 @@ function App() {
   }
 
   function chooseBody(bodyId: BodyId) {
-    updateVehicle((current) => ({ ...current, bodyId }))
+    const generation = defaultGeneration(bodyId)
+    updateVehicle((current) => ({ ...current, bodyId, generationId: generation.id }))
     setSelectedSlot(undefined)
-    notify(`${bodyById(bodyId).name} body selected`)
+    notify(`${bodyById(bodyId, generation.id).name} · ${generation.name} selected`)
+  }
+
+  function chooseGeneration(generationId: string) {
+    const generation = bodyGenerations[vehicle.bodyId].find((item) => item.id === generationId)
+    if (!generation) return
+    updateVehicle((current) => ({ ...current, generationId }))
+    setViewResetKey((key) => key + 1)
+    notify(`${generation.name} generation applied`)
   }
 
   function choosePart(partId: string) {
@@ -267,7 +287,9 @@ function App() {
         const selected = pick(candidates).id
         categorySlots[category.id].forEach((slot) => { nextParts[slot] = selected })
       })
-      return { ...current, bodyId: pick(bodies).id, bodyColor: pick(paintSwatches), parts: nextParts }
+      const randomBody = pick(bodies)
+      const randomGeneration = pick(bodyGenerations[randomBody.id])
+      return { ...current, bodyId: randomBody.id, generationId: randomGeneration.id, bodyColor: pick(paintSwatches), parts: nextParts }
     })
     setPendingPart(undefined)
     setSelectedSlot(undefined)
@@ -287,7 +309,7 @@ function App() {
       try {
         const parsed = JSON.parse(String(reader.result))
         const next = parsed.car ?? parsed
-        updateVehicle(() => ({ ...initialVehicle, ...next }))
+        updateVehicle(() => normalizeVehicle(next))
         notify('Project loaded')
       } catch {
         notify('That project file could not be read', 'neutral')
@@ -386,7 +408,13 @@ function App() {
       </aside>
 
       <section className="workspace">
-        <Suspense fallback={<div className="studio-loading"><CarFront size={24} /><span>Opening 3D studio…</span></div>}>
+        <Suspense fallback={(
+          <div className="studio-loading">
+            <div className="loader-mark"><CarFront size={27} /></div>
+            <div className="loader-copy"><b>Opening design studio</b><span>Loading geometry and materials…</span></div>
+            <div className="loader-track"><i /></div>
+          </div>
+        )}>
           <VehicleScene
             vehicle={vehicle}
             activeCategory={activeCategory}
@@ -402,7 +430,7 @@ function App() {
         <div className="viewport-top-left">
           <div className="body-chip" onClick={() => chooseTool('body')}>
             <BodyThumb id={vehicle.bodyId} color={vehicle.bodyColor} />
-            <span><small>{body.eyebrow} body</small><b>{body.name}</b></span>
+            <span><small>{body.eyebrow} · {body.generationName}</small><b>{body.name}</b></span>
             <ChevronDown size={16} />
           </div>
         </div>
@@ -435,7 +463,7 @@ function App() {
       <aside className={`asset-panel ${mobilePanelOpen ? 'mobile-open' : ''}`}>
         <button className="mobile-close" onClick={() => setMobilePanelOpen(false)} aria-label="Close panel"><X size={18} /></button>
         {activeTool === 'body' ? (
-          <BodyPanel vehicle={vehicle} onChoose={chooseBody} />
+          <BodyPanel vehicle={vehicle} onChoose={chooseBody} onGeneration={chooseGeneration} />
         ) : activeTool === 'paint' ? (
           <PaintPanel vehicle={vehicle} updateVehicle={updateVehicle} />
         ) : (
@@ -488,14 +516,37 @@ function App() {
   )
 }
 
-function BodyPanel({ vehicle, onChoose }: { vehicle: VehicleState; onChoose: (id: BodyId) => void }) {
+function BodyPanel({ vehicle, onChoose, onGeneration }: { vehicle: VehicleState; onChoose: (id: BodyId) => void; onGeneration: (id: string) => void }) {
+  const generations = bodyGenerations[vehicle.bodyId]
+  const selectedGeneration = generations.find((generation) => generation.id === vehicle.generationId) ?? defaultGeneration(vehicle.bodyId)
+  const selectedBody = bodies.find((body) => body.id === vehicle.bodyId) ?? bodies[0]
   return (
     <>
       <div className="panel-header">
-        <div><span className="section-kicker">STARTING POINT</span><h2>Choose a body</h2></div>
+        <div><span className="section-kicker">DESIGN DNA</span><h2>Body & generation</h2></div>
         <span className="panel-count">{String(bodies.length).padStart(2, '0')}</span>
       </div>
-      <p className="panel-description">Pick a silhouette. Every body has smart attachment slots ready for your parts.</p>
+      <p className="panel-description">Choose a body family, then move through its design generations. Parts stay attached.</p>
+
+      <div className="generation-section">
+        <div className="generation-head">
+          <span>GENERATION · {selectedBody.name}</span>
+          <b>{selectedGeneration.years}</b>
+        </div>
+        <div className="generation-list">
+          {generations.map((generation, index) => (
+            <button key={generation.id} className={vehicle.generationId === generation.id ? 'active' : ''} onClick={() => onGeneration(generation.id)}>
+              <span>0{index + 1}</span>
+              <b>{generation.name}</b>
+              <small>{generation.style}</small>
+              {vehicle.generationId === generation.id && <Check size={13} />}
+            </button>
+          ))}
+        </div>
+        <p className="generation-description">{selectedGeneration.description}</p>
+      </div>
+
+      <div className="body-section-label"><span>BODY FAMILY</span><b>{bodies.length} available</b></div>
       <div className="body-list">
         {bodies.map((body) => (
           <button key={body.id} className={`body-card ${vehicle.bodyId === body.id ? 'selected' : ''}`} onClick={() => onChoose(body.id)}>
@@ -506,7 +557,6 @@ function BodyPanel({ vehicle, onChoose }: { vehicle: VehicleState; onChoose: (id
           </button>
         ))}
       </div>
-      <div className="tip-card"><span><Zap size={16} /></span><p><b>Smart slots included</b>Changing the body keeps compatible parts attached.</p></div>
     </>
   )
 }

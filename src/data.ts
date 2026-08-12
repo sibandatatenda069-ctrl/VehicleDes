@@ -23,6 +23,8 @@ export type SlotId =
   | 'bumper_rear'
   | 'windows'
 
+export type GenerationStyle = 'classic' | 'revival' | 'modern'
+
 export type BodyDefinition = {
   id: BodyId
   name: string
@@ -34,6 +36,19 @@ export type BodyDefinition = {
   wheelRadius: number
   cabinLength: number
   cabinX: number
+  generationId?: string
+  generationName?: string
+  generationYears?: string
+  generationStyle?: GenerationStyle
+}
+
+export type BodyGeneration = {
+  id: string
+  name: string
+  years: string
+  style: GenerationStyle
+  description: string
+  dimensions: Partial<Pick<BodyDefinition, 'length' | 'width' | 'lowerHeight' | 'cabinHeight' | 'wheelRadius' | 'cabinLength' | 'cabinX'>>
 }
 
 export type PartDefinition = {
@@ -53,6 +68,7 @@ export type CategoryDefinition = {
 
 export type VehicleState = {
   bodyId: BodyId
+  generationId: string
   bodyColor: string
   trimColor: string
   glassColor: string
@@ -70,6 +86,44 @@ export const bodies: BodyDefinition[] = [
   { id: 'truck', name: 'Forge 150', eyebrow: 'Truck', length: 5.55, width: 2.23, lowerHeight: 0.94, cabinHeight: 1.15, wheelRadius: 0.62, cabinLength: 2.0, cabinX: 0.65 },
   { id: 'van', name: 'Transit V', eyebrow: 'Van', length: 5.25, width: 2.2, lowerHeight: 1.02, cabinHeight: 1.4, wheelRadius: 0.54, cabinLength: 4.35, cabinX: -0.1 },
 ]
+
+export const bodyGenerations: Record<BodyId, BodyGeneration[]> = {
+  sports: [
+    { id: 'apex_g1', name: 'Wedge', years: '1989–1998', style: 'classic', description: 'Compact proportions, pop-up-era nose and a low glasshouse.', dimensions: { length: 4.72, width: 1.94, lowerHeight: 0.64, cabinHeight: 0.62, wheelRadius: 0.49, cabinLength: 2.25, cabinX: -0.08 } },
+    { id: 'apex_g2', name: 'Road GT', years: '1999–2012', style: 'revival', description: 'Rounded grand-tourer surfacing with a longer, calmer roofline.', dimensions: { length: 4.96, width: 2.04, lowerHeight: 0.68, cabinHeight: 0.72, wheelRadius: 0.53, cabinLength: 2.5, cabinX: -0.15 } },
+    { id: 'apex_g3', name: 'Aero', years: '2013–2026', style: 'modern', description: 'Wide-track modern aero with sharp lighting and a cab-rearward stance.', dimensions: {} },
+  ],
+  muscle: [
+    { id: 'vandal_g1', name: 'Golden Era', years: '1967–1973', style: 'classic', description: 'Long hood, short deck, upright glass and chrome-era presence.', dimensions: { length: 5.18, width: 2.08, lowerHeight: 0.8, cabinHeight: 0.7, wheelRadius: 0.54, cabinLength: 2.28, cabinX: -0.38 } },
+    { id: 'vandal_g2', name: 'Revival', years: '2008–2014', style: 'revival', description: 'Retro-modern shoulders, heavy quarters and a chopped greenhouse.', dimensions: { length: 5.25, width: 2.18, lowerHeight: 0.84, cabinHeight: 0.76, wheelRadius: 0.57, cabinLength: 2.4, cabinX: -0.36 } },
+    { id: 'vandal_g3', name: 'Supercharged', years: '2015–2026', style: 'modern', description: 'Wide-body muscle with modern aero and an aggressive power dome.', dimensions: {} },
+  ],
+  sedan: [
+    { id: 'linea_g1', name: 'Executive', years: '1992–2001', style: 'classic', description: 'Formal three-box proportions with slim pillars and restrained surfacing.', dimensions: { length: 4.82, width: 1.91, lowerHeight: 0.74, cabinHeight: 0.84, wheelRadius: 0.48, cabinLength: 2.62, cabinX: -0.12 } },
+    { id: 'linea_g2', name: 'Dynamic', years: '2002–2015', style: 'revival', description: 'Longer wheelbase, rising beltline and rounded premium forms.', dimensions: { length: 4.96, width: 2.02, lowerHeight: 0.77, cabinHeight: 0.88, wheelRadius: 0.51, cabinLength: 2.8, cabinX: -0.16 } },
+    { id: 'linea_g3', name: 'Digital', years: '2016–2026', style: 'modern', description: 'Fastback-inspired glass, wide track and crisp technical detailing.', dimensions: {} },
+  ],
+  suv: [
+    { id: 'atlas_g1', name: 'Utility', years: '1994–2005', style: 'classic', description: 'Upright off-road stance with compact overhangs and squared glass.', dimensions: { length: 4.7, width: 2.05, lowerHeight: 0.92, cabinHeight: 1.1, wheelRadius: 0.56, cabinLength: 3.05, cabinX: -0.16 } },
+    { id: 'atlas_g2', name: 'Urban', years: '2006–2017', style: 'revival', description: 'Softer crossover surfacing with more cabin space and road presence.', dimensions: { length: 4.92, width: 2.16, lowerHeight: 0.94, cabinHeight: 1.14, wheelRadius: 0.58, cabinLength: 3.2, cabinX: -0.22 } },
+    { id: 'atlas_g3', name: 'Performance', years: '2018–2026', style: 'modern', description: 'Wide performance SUV with tapered glass and strong shoulder lines.', dimensions: {} },
+  ],
+  truck: [
+    { id: 'forge_g1', name: 'Squarebody', years: '1973–1987', style: 'classic', description: 'Straight beltline, single cab and a simple long utility bed.', dimensions: { length: 5.35, width: 2.08, lowerHeight: 0.9, cabinHeight: 1.05, wheelRadius: 0.57, cabinLength: 1.82, cabinX: 0.7 } },
+    { id: 'forge_g2', name: 'Workhorse', years: '1988–2014', style: 'revival', description: 'Broader cab, deeper bed and rounded heavy-duty fenders.', dimensions: { length: 5.48, width: 2.17, lowerHeight: 0.92, cabinHeight: 1.1, wheelRadius: 0.6, cabinLength: 1.92, cabinX: 0.67 } },
+    { id: 'forge_g3', name: 'Heavy Duty', years: '2015–2026', style: 'modern', description: 'Tall grille, muscular body sides and a wide modern track.', dimensions: {} },
+  ],
+  van: [
+    { id: 'transit_g1', name: 'Panel', years: '1980–1995', style: 'classic', description: 'Short nose, flat roof and honest commercial proportions.', dimensions: { length: 4.82, width: 2.02, lowerHeight: 0.94, cabinHeight: 1.25, wheelRadius: 0.49, cabinLength: 3.95, cabinX: -0.02 } },
+    { id: 'transit_g2', name: 'Tourer', years: '1996–2013', style: 'revival', description: 'Rounded cab-forward body with larger glass and passenger comfort.', dimensions: { length: 5.05, width: 2.12, lowerHeight: 0.98, cabinHeight: 1.33, wheelRadius: 0.52, cabinLength: 4.15, cabinX: -0.06 } },
+    { id: 'transit_g3', name: 'E-Transit', years: '2014–2026', style: 'modern', description: 'Tall modern body with flush details and a clean technical face.', dimensions: {} },
+  ],
+}
+
+export function defaultGeneration(bodyId: BodyId) {
+  const generations = bodyGenerations[bodyId]
+  return generations[generations.length - 1]
+}
 
 export const categories: CategoryDefinition[] = [
   { id: 'wheels', label: 'Wheels', icon: CircleDot, count: 7 },
@@ -124,6 +178,7 @@ export const categorySlots: Record<CategoryId, SlotId[]> = {
 
 export const initialVehicle: VehicleState = {
   bodyId: 'sports',
+  generationId: 'apex_g3',
   bodyColor: '#b4f34b',
   trimColor: '#151816',
   glassColor: '#294548',
@@ -146,8 +201,18 @@ export const initialVehicle: VehicleState = {
 
 export const paintSwatches = ['#b4f34b', '#ff5c45', '#f1f0e9', '#202321', '#4268e8', '#d39a42', '#7d5bc7', '#9caaa7']
 
-export function bodyById(id: BodyId) {
-  return bodies.find((body) => body.id === id) ?? bodies[0]
+export function bodyById(id: BodyId, generationId?: string) {
+  const base = bodies.find((body) => body.id === id) ?? bodies[0]
+  const generations = bodyGenerations[base.id]
+  const generation = generations.find((item) => item.id === generationId) ?? defaultGeneration(base.id)
+  return {
+    ...base,
+    ...generation.dimensions,
+    generationId: generation.id,
+    generationName: generation.name,
+    generationYears: generation.years,
+    generationStyle: generation.style,
+  }
 }
 
 export function partById(id?: string) {
