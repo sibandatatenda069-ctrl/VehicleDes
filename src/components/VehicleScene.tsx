@@ -316,8 +316,8 @@ function wheelPosition(slot: SlotId, body: BodyDefinition): [number, number, num
     headlight_r: [body.length / 2 + 0.025, wheelY + body.lowerHeight * 0.58, -body.width * 0.31],
     grille: [body.length / 2 + 0.07, wheelY + body.lowerHeight * 0.28, 0],
     spoiler: [-body.length / 2 + 0.28, wheelY + body.lowerHeight + 0.36, 0],
-    bumper_front: [body.length / 2 + 0.11, wheelY * 0.54, 0],
-    bumper_rear: [-body.length / 2 - 0.11, wheelY * 0.54, 0],
+    bumper_front: [body.length / 2 + 0.11, wheelY + body.lowerHeight * 0.1, 0],
+    bumper_rear: [-body.length / 2 - 0.11, wheelY + body.lowerHeight * 0.1, 0],
     windows: [body.cabinX, wheelY + body.lowerHeight + body.cabinHeight * 0.54, body.width / 2 + 0.13],
   }
   return map[slot]
@@ -524,7 +524,7 @@ function Bumper({ body, rear, id, color, selected, onClick }: { body: BodyDefini
   const x = (rear ? -1 : 1) * (body.length / 2 + 0.055)
   const rally = id === 'bumper_rally'
   return (
-    <group position={[x, body.wheelRadius * 0.54, 0]} onClick={(e) => { e.stopPropagation(); onClick() }} name={`${rear ? 'Rear' : 'Front'}_Bumper_${id}`}>
+    <group position={[x, body.wheelRadius + body.lowerHeight * 0.1, 0]} onClick={(e) => { e.stopPropagation(); onClick() }} name={`${rear ? 'Rear' : 'Front'}_Bumper_${id}`}>
       <RoundedBox args={[rally ? 0.18 : 0.13, rally ? 0.32 : 0.2, body.width * 0.91]} radius={0.06} smoothness={3}>
         <meshPhysicalMaterial color={id === 'bumper_chrome' ? '#d7dfdc' : color} metalness={id === 'bumper_chrome' ? 0.94 : rally ? 0.72 : 0.25} roughness={id === 'bumper_chrome' ? 0.16 : 0.34} clearcoat={0.35} emissive={selected ? '#91d22f' : '#000'} emissiveIntensity={0.14} />
       </RoundedBox>
@@ -800,13 +800,13 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
             {glassMaterial}
           </mesh>
           {pillarXs.map((x) => (
-            <RoundedBox key={x} args={[0.075, body.cabinHeight * 0.78, 0.035]} radius={0.018} smoothness={2} position={[x, lowerTop + body.cabinHeight * 0.5, side * (body.width / 2 + 0.105)]}>
+            <RoundedBox key={x} args={[0.075, body.cabinHeight * 0.78, 0.045]} radius={0.018} smoothness={2} position={[x, lowerTop + body.cabinHeight * 0.5, side * body.width * 0.355]}>
               <meshStandardMaterial color={vehicle.trimColor} roughness={0.26} metalness={0.25} />
             </RoundedBox>
           ))}
           {/* flush door handles */}
           {(body.id === 'truck' ? [body.length * 0.015] : [body.length * 0.07, -body.length * 0.21]).map((x) => (
-            <RoundedBox key={`handle-${x}`} args={[0.19, 0.035, 0.025]} radius={0.015} smoothness={2} position={[x, lowerTop - 0.12, side * (body.width / 2 + 0.11)]}>
+            <RoundedBox key={`handle-${x}`} args={[0.19, 0.035, 0.035]} radius={0.015} smoothness={2} position={[x, lowerTop - 0.12, side * body.width * 0.497]}>
               <meshStandardMaterial color="#aeb5b1" metalness={0.88} roughness={0.2} />
             </RoundedBox>
           ))}
@@ -921,19 +921,19 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
 
       {/* twin exhaust tips and rear diffuser */}
       {[-0.58, 0.58].map((z) => (
-        <mesh key={`exhaust-${z}`} position={[-body.length / 2 - 0.14, body.wheelRadius * 0.24, z]} rotation={[0, 0, Math.PI / 2]}>
+        <mesh key={`exhaust-${z}`} position={[-body.length / 2 - 0.14, body.wheelRadius * 0.78, z]} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.075, 0.075, 0.25, 24, 1, true]} />
           <meshStandardMaterial color="#59605d" metalness={0.95} roughness={0.19} side={THREE.DoubleSide} />
         </mesh>
       ))}
-      <mesh position={[-body.length / 2 - 0.05, body.wheelRadius * 0.17, 0]}>
+      <mesh position={[-body.length / 2 - 0.05, body.wheelRadius * 0.82, 0]}>
         <boxGeometry args={[0.2, 0.12, body.width * 0.64]} />
         <meshStandardMaterial color="#101310" metalness={0.34} roughness={0.38} />
       </mesh>
 
       {/* fog lamps and amber repeater strips give the front fascia game-vehicle readability */}
       {[-1, 1].map((side) => (
-        <group key={`fog-${side}`} position={[body.length / 2 + 0.1, body.wheelRadius * 0.55, side * body.width * 0.38]}>
+        <group key={`fog-${side}`} position={[body.length / 2 + 0.1, body.wheelRadius + body.lowerHeight * 0.09, side * body.width * 0.38]}>
           <mesh rotation={[0, Math.PI / 2, 0]}>
             <circleGeometry args={[0.07, 24]} />
             <meshStandardMaterial color="#f4fcdf" emissive="#eaffc6" emissiveIntensity={1.2} toneMapped={false} />
@@ -1056,7 +1056,7 @@ function BodyShell({ vehicle, body }: { vehicle: VehicleState; body: BodyDefinit
             </RoundedBox>
           ))}
           {[-1, 1].map((side) => (
-            <group key={`side-pipes-${side}`} position={[-body.length * 0.04, body.wheelRadius * 0.29, side * body.width * 0.51]}>
+            <group key={`side-pipes-${side}`} position={[-body.length * 0.04, body.wheelRadius * 0.88, side * body.width * 0.505]}>
               {[-0.065, 0.065].map((offset) => (
                 <mesh key={offset} position={[0, offset, 0]} rotation={[0, 0, Math.PI / 2]}>
                   <cylinderGeometry args={[0.035, 0.045, body.length * 0.31, 18, 1, true]} />
