@@ -811,8 +811,8 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
             </RoundedBox>
           ))}
           {/* lower sill and door shut lines */}
-          <mesh position={[body.cabinX, body.wheelRadius * 0.35, side * (body.width / 2 + 0.092)]}>
-            <boxGeometry args={[body.length * 0.52, 0.055, 0.045]} />
+          <mesh position={[body.cabinX, body.wheelRadius + body.lowerHeight * 0.045, side * body.width * 0.495]}>
+            <boxGeometry args={[body.length * 0.52, 0.075, 0.05]} />
             <meshStandardMaterial color={vehicle.trimColor} metalness={0.35} roughness={0.3} />
           </mesh>
           {pillarXs.map((x) => (
@@ -1089,9 +1089,10 @@ function BodyShell({ vehicle, body }: { vehicle: VehicleState; body: BodyDefinit
           ))}
         </>
       )}
-      {/* underbody shadow masks the hollow procedural shell */}
-      <RoundedBox args={[body.length * 0.73, 0.13, body.width * 0.74]} radius={0.06} smoothness={2} position={[0, body.wheelRadius * 0.23, 0]}>
-        <meshStandardMaterial color="#101210" roughness={0.78} />
+      {/* The chassis floor is tucked up against the rocker panels instead of
+          sitting near the studio ground as a disconnected base. */}
+      <RoundedBox args={[body.length * 0.73, 0.18, body.width * 0.76]} radius={0.065} smoothness={3} position={[0, body.wheelRadius * 0.77, 0]}>
+        <meshStandardMaterial color="#101210" metalness={0.24} roughness={0.72} />
       </RoundedBox>
     </>
   )
