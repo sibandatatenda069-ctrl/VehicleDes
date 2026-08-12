@@ -291,8 +291,8 @@ function wheelPosition(slot: SlotId, body: BodyDefinition): [number, number, num
     headlight_r: [body.length / 2 + 0.08, wheelY + body.lowerHeight * 0.58, -body.width * 0.31],
     grille: [body.length / 2 + 0.16, wheelY + body.lowerHeight * 0.28, 0],
     spoiler: [-body.length / 2 + 0.28, wheelY + body.lowerHeight + 0.36, 0],
-    bumper_front: [body.length / 2 + 0.2, wheelY * 0.54, 0],
-    bumper_rear: [-body.length / 2 - 0.2, wheelY * 0.54, 0],
+    bumper_front: [body.length / 2 + 0.11, wheelY * 0.54, 0],
+    bumper_rear: [-body.length / 2 - 0.11, wheelY * 0.54, 0],
     windows: [body.cabinX, wheelY + body.lowerHeight + body.cabinHeight * 0.54, body.width / 2 + 0.13],
   }
   return map[slot]
@@ -445,7 +445,7 @@ function Grille({ body, id, color, selected, onClick }: { body: BodyDefinition; 
   const bars = id === 'grille_bar' ? 8 : id === 'grille_chrome' ? 6 : 5
   const grilleHeight = body.lowerHeight * 0.46
   return (
-    <group position={[body.length / 2 + 0.085, body.wheelRadius + body.lowerHeight * 0.31, 0]} onClick={(e) => { e.stopPropagation(); onClick() }} name={`Grille_${id}`}>
+    <group position={[body.length / 2 + 0.045, body.wheelRadius + body.lowerHeight * 0.31, 0]} onClick={(e) => { e.stopPropagation(); onClick() }} name={`Grille_${id}`}>
       <RoundedBox args={[0.11, grilleHeight, body.width * 0.49]} radius={0.08} smoothness={3}>
         <meshStandardMaterial color="#0b0e0d" metalness={0.46} roughness={0.3} emissive={selected ? '#8ccf2d' : '#000'} emissiveIntensity={0.25} />
       </RoundedBox>
@@ -466,7 +466,7 @@ function Spoiler({ body, id, color, selected, onClick }: { body: BodyDefinition;
   const lip = id === 'spoiler_lip'
   const height = lip ? 0.07 : id === 'spoiler_heritage' ? 0.28 : 0.42
   const x = -body.length / 2 + 0.32
-  const y = body.wheelRadius + body.lowerHeight + height
+  const y = body.wheelRadius + body.lowerHeight + (lip ? 0.035 : height)
   return (
     <group position={[x, y, 0]} onClick={(e) => { e.stopPropagation(); onClick() }} name={`Spoiler_${id}`}>
       {!lip && [-0.63, 0.63].map((z) => (
@@ -557,31 +557,32 @@ function FenderArches({ body, vehicle }: { body: BodyDefinition; vehicle: Vehicl
   )
 }
 
-function Seat({ position, color = '#242824' }: { position: [number, number, number]; color?: string }) {
+function Seat({ position, color = '#242824', rear = false }: { position: [number, number, number]; color?: string; rear?: boolean }) {
+  const rearScale = rear ? 0.88 : 1
   return (
-    <group position={position}>
-      <RoundedBox args={[0.54, 0.16, 0.48]} radius={0.08} smoothness={3} rotation={[0, 0, -0.06]} castShadow>
+    <group position={position} scale={[rear ? 0.92 : 1, rearScale, rear ? 0.94 : 1]}>
+      <RoundedBox args={[0.52, 0.13, 0.47]} radius={0.075} smoothness={3} rotation={[0, 0, -0.045]} castShadow>
         <meshStandardMaterial color={color} roughness={0.72} />
       </RoundedBox>
-      <RoundedBox args={[0.17, 0.66, 0.49]} radius={0.08} smoothness={3} position={[-0.2, 0.36, 0]} rotation={[0, 0, -0.12]} castShadow>
+      <RoundedBox args={[0.16, 0.48, 0.48]} radius={0.075} smoothness={3} position={[-0.18, 0.27, 0]} rotation={[0, 0, -0.1]} castShadow>
         <meshStandardMaterial color={color} roughness={0.68} />
       </RoundedBox>
-      <RoundedBox args={[0.13, 0.19, 0.29]} radius={0.055} smoothness={3} position={[-0.27, 0.75, 0]} castShadow>
+      <RoundedBox args={[0.12, 0.14, 0.27]} radius={0.05} smoothness={3} position={[-0.235, 0.55, 0]} castShadow>
         <meshStandardMaterial color={color} roughness={0.7} />
       </RoundedBox>
-      {/* stitched bolsters catch highlights through the side glass */}
+      {/* stitched bolsters catch highlights without crossing the glass envelope */}
       {[-1, 1].map((side) => (
-        <mesh key={side} position={[-0.11, 0.36, side * 0.235]} rotation={[0, 0, -0.12]}>
-          <boxGeometry args={[0.08, 0.5, 0.025]} />
+        <mesh key={side} position={[-0.1, 0.27, side * 0.225]} rotation={[0, 0, -0.1]}>
+          <boxGeometry args={[0.07, 0.36, 0.02]} />
           <meshStandardMaterial color="#3b413d" roughness={0.56} />
         </mesh>
       ))}
-      <mesh position={[-0.29, 0.43, 0.17]} rotation={[0, 0, -0.18]}>
-        <boxGeometry args={[0.025, 0.57, 0.018]} />
+      <mesh position={[-0.245, 0.31, 0.165]} rotation={[0, 0, -0.15]}>
+        <boxGeometry args={[0.022, 0.4, 0.016]} />
         <meshStandardMaterial color="#151916" roughness={0.82} />
       </mesh>
-      <mesh position={[-0.215, 0.37, 0.251]} rotation={[0, 0, -0.12]}>
-        <boxGeometry args={[0.012, 0.45, 0.012]} />
+      <mesh position={[-0.19, 0.28, 0.241]} rotation={[0, 0, -0.1]}>
+        <boxGeometry args={[0.01, 0.32, 0.01]} />
         <meshBasicMaterial color="#9ca39f" />
       </mesh>
     </group>
@@ -590,11 +591,13 @@ function Seat({ position, color = '#242824' }: { position: [number, number, numb
 
 function VehicleInterior({ body }: { body: BodyDefinition }) {
   const lowerTop = body.wheelRadius + body.lowerHeight
-  const frontSeatX = body.id === 'truck' ? body.length * 0.015 : body.id === 'van' ? body.length * 0.15 : body.length * 0.03
-  const rearSeatX = body.id === 'van' ? -body.length * 0.17 : -body.length * 0.18
-  const seatZ = body.width * 0.22
+  const frontSeatX = body.id === 'truck' ? body.length * 0.005 : body.id === 'van' ? body.length * 0.14 : body.length * 0.015
+  // Rear occupants sit ahead of the sloping rear glass instead of intersecting it.
+  const rearSeatX = body.id === 'van' ? -body.length * 0.1 : -body.length * 0.09
+  const seatZ = body.width * 0.21
   const interiorProfile = glassProfile(body)
-  const dashX = interiorProfile.frontBottom[0] - 0.12
+  // Keep the dashboard behind the entire windscreen plane, including its lower edge.
+  const dashX = interiorProfile.frontBottom[0] - 0.3
   const driverZ = body.width * 0.23
 
   return (
@@ -603,7 +606,7 @@ function VehicleInterior({ body }: { body: BodyDefinition }) {
         <meshStandardMaterial color="#111411" roughness={0.86} />
       </RoundedBox>
       {[-1, 1].map((side) => <Seat key={`front-${side}`} position={[frontSeatX, lowerTop + 0.03, side * seatZ]} />)}
-      {body.id !== 'truck' && [-1, 1].map((side) => <Seat key={`rear-${side}`} position={[rearSeatX, lowerTop + 0.02, side * seatZ]} color="#292e2a" />)}
+      {body.id !== 'truck' && [-1, 1].map((side) => <Seat rear key={`rear-${side}`} position={[rearSeatX, lowerTop + 0.015, side * seatZ]} color="#292e2a" />)}
 
       {/* dashboard, instrument binnacle and center stack */}
       <RoundedBox args={[0.34, 0.24, body.width * 0.74]} radius={0.08} smoothness={3} position={[dashX, lowerTop + 0.24, 0]} rotation={[0, 0, 0.06]}>
@@ -872,7 +875,7 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
 
       {/* registration plates */}
       {[1, -1].map((direction) => (
-        <group key={`plate-${direction}`} position={[direction * (body.length / 2 + 0.155), body.wheelRadius + 0.04, 0]} rotation={[0, direction < 0 ? Math.PI : 0, 0]}>
+        <group key={`plate-${direction}`} position={[direction * (body.length / 2 + 0.115), body.wheelRadius + 0.04, 0]} rotation={[0, direction < 0 ? Math.PI : 0, 0]}>
           <RoundedBox args={[0.025, 0.17, 0.47]} radius={0.025} smoothness={2}>
             <meshStandardMaterial color="#e8ebe5" roughness={0.46} />
           </RoundedBox>
@@ -999,7 +1002,10 @@ function BodyShell({ vehicle, body }: { vehicle: VehicleState; body: BodyDefinit
       {/* pickup bed liner */}
       {body.id === 'truck' && (
         <>
-          <RoundedBox args={[body.length * 0.28, 0.055, body.width * 0.75]} radius={0.035} smoothness={2} position={[-body.length * 0.35, lowerTop + 0.08, 0]}>
+          <RoundedBox args={[body.length * 0.31, 0.34, body.width * 0.86]} radius={0.09} smoothness={4} position={[-body.length * 0.345, lowerTop - 0.17, 0]} castShadow>
+            <meshPhysicalMaterial color={vehicle.bodyColor} {...paintProperties(vehicle)} />
+          </RoundedBox>
+          <RoundedBox args={[body.length * 0.28, 0.055, body.width * 0.75]} radius={0.035} smoothness={2} position={[-body.length * 0.35, lowerTop + 0.015, 0]}>
             <meshStandardMaterial color="#161a17" roughness={0.72} />
           </RoundedBox>
           {[-1, 1].map((side) => (
