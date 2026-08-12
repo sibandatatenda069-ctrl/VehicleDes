@@ -1,4 +1,5 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Bloom, EffectComposer, N8AO, Vignette } from '@react-three/postprocessing'
 import {
   ContactShadows,
   Environment,
@@ -33,6 +34,63 @@ function paintProperties(vehicle: VehicleState) {
   if (vehicle.finish === 'matte') return { roughness: 0.72, metalness: 0.08, clearcoat: 0.08, clearcoatRoughness: 0.8 }
   if (vehicle.finish === 'satin') return { roughness: 0.38, metalness: 0.18, clearcoat: 0.42, clearcoatRoughness: 0.38 }
   return { roughness: 0.18, metalness: 0.26, clearcoat: 1, clearcoatRoughness: 0.12 }
+}
+
+type GlassProfile = {
+  frontBottom: [number, number]
+  frontTop: [number, number]
+  rearTop: [number, number]
+  rearBottom: [number, number]
+  roofControl: [number, number]
+}
+
+function glassProfile(body: BodyDefinition): GlassProfile {
+  const l = body.length
+  const lowerTop = body.wheelRadius + body.lowerHeight
+  const roof = lowerTop + body.cabinHeight
+  if (body.id === 'truck') {
+    return {
+      frontBottom: [l * 0.16, lowerTop + 0.12],
+      frontTop: [l * 0.1, roof - 0.16],
+      rearTop: [-l * 0.1, roof - 0.12],
+      rearBottom: [-l * 0.15, lowerTop + 0.12],
+      roofControl: [0, roof - 0.07],
+    }
+  }
+  if (body.id === 'van') {
+    return {
+      frontBottom: [l * 0.36, lowerTop + 0.1],
+      frontTop: [l * 0.31, roof - 0.15],
+      rearTop: [-l * 0.35, roof - 0.14],
+      rearBottom: [-l * 0.4, lowerTop + 0.1],
+      roofControl: [0, roof - 0.07],
+    }
+  }
+  return {
+    frontBottom: [body.id === 'suv' ? l * 0.26 : l * 0.2, lowerTop + 0.1],
+    frontTop: [body.id === 'suv' ? l * 0.13 : l * 0.07, roof - 0.14],
+    rearTop: [body.id === 'suv' ? -l * 0.19 : -l * 0.16, roof - 0.12],
+    rearBottom: [body.id === 'suv' ? -l * 0.3 : -l * 0.29, lowerTop + 0.1],
+    roofControl: [body.cabinX, roof - 0.05],
+  }
+}
+
+function addGlassPath(target: THREE.Path | THREE.Shape, body: BodyDefinition, reverse = false) {
+  const profile = glassProfile(body)
+  const { frontBottom: fb, frontTop: ft, rearTop: rt, rearBottom: rb, roofControl: rc } = profile
+  if (reverse) {
+    target.moveTo(fb[0], fb[1])
+    target.lineTo(rb[0], rb[1])
+    target.lineTo(rt[0], rt[1])
+    target.quadraticCurveTo(rc[0], rc[1], ft[0], ft[1])
+    target.lineTo(fb[0], fb[1])
+  } else {
+    target.moveTo(fb[0], fb[1])
+    target.lineTo(ft[0], ft[1])
+    target.quadraticCurveTo(rc[0], rc[1], rt[0], rt[1])
+    target.lineTo(rb[0], rb[1])
+    target.closePath()
+  }
 }
 
 function shellGeometry(body: BodyDefinition) {
@@ -71,6 +129,17 @@ function shellGeometry(body: BodyDefinition) {
   shape.quadraticCurveTo(l * 0.17, wr * 0.03, l * 0.43, wr * 0.12)
   shape.closePath()
 
+  // Actual openings keep the shell from reading as a solid toy block. The cabin
+  // cutout is closed again by separate glass and exposes the game-ready interior.
+  const glassHole = new THREE.Path()
+  addGlassPath(glassHole, body, true)
+  shape.holes.push(glassHole)
+  ;[l * 0.31, -l * 0.32].forEach((x) => {
+    const wheelOpening = new THREE.Path()
+    wheelOpening.absarc(x, wr, wr * 0.8, 0, Math.PI * 2, true)
+    shape.holes.push(wheelOpening)
+  })
+
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth: width,
     steps: 1,
@@ -86,32 +155,8 @@ function shellGeometry(body: BodyDefinition) {
 }
 
 function sideGlassGeometry(body: BodyDefinition) {
-  const l = body.length
-  const lowerTop = body.wheelRadius + body.lowerHeight
-  const roof = lowerTop + body.cabinHeight
   const shape = new THREE.Shape()
-
-  if (body.id === 'truck') {
-    shape.moveTo(l * 0.16, lowerTop + 0.12)
-    shape.lineTo(l * 0.1, roof - 0.16)
-    shape.quadraticCurveTo(0, roof - 0.07, -l * 0.1, roof - 0.12)
-    shape.lineTo(-l * 0.15, lowerTop + 0.12)
-  } else if (body.id === 'van') {
-    shape.moveTo(l * 0.36, lowerTop + 0.1)
-    shape.lineTo(l * 0.31, roof - 0.15)
-    shape.quadraticCurveTo(0, roof - 0.07, -l * 0.35, roof - 0.14)
-    shape.lineTo(-l * 0.4, lowerTop + 0.1)
-  } else {
-    const frontTopX = body.id === 'suv' ? l * 0.13 : l * 0.07
-    const rearTopX = body.id === 'suv' ? -l * 0.19 : -l * 0.16
-    const frontBottomX = body.id === 'suv' ? l * 0.26 : l * 0.2
-    const rearBottomX = body.id === 'suv' ? -l * 0.3 : -l * 0.29
-    shape.moveTo(frontBottomX, lowerTop + 0.1)
-    shape.lineTo(frontTopX, roof - 0.14)
-    shape.quadraticCurveTo(body.cabinX, roof - 0.05, rearTopX, roof - 0.12)
-    shape.lineTo(rearBottomX, lowerTop + 0.1)
-  }
-  shape.closePath()
+  addGlassPath(shape, body)
   return new THREE.ShapeGeometry(shape, 18)
 }
 
@@ -385,6 +430,99 @@ function FenderArches({ body, vehicle }: { body: BodyDefinition; vehicle: Vehicl
   )
 }
 
+function Seat({ position, color = '#242824' }: { position: [number, number, number]; color?: string }) {
+  return (
+    <group position={position}>
+      <RoundedBox args={[0.54, 0.16, 0.48]} radius={0.08} smoothness={3} rotation={[0, 0, -0.06]} castShadow>
+        <meshStandardMaterial color={color} roughness={0.72} />
+      </RoundedBox>
+      <RoundedBox args={[0.17, 0.66, 0.49]} radius={0.08} smoothness={3} position={[-0.2, 0.36, 0]} rotation={[0, 0, -0.12]} castShadow>
+        <meshStandardMaterial color={color} roughness={0.68} />
+      </RoundedBox>
+      <RoundedBox args={[0.13, 0.19, 0.29]} radius={0.055} smoothness={3} position={[-0.27, 0.75, 0]} castShadow>
+        <meshStandardMaterial color={color} roughness={0.7} />
+      </RoundedBox>
+      {/* stitched bolsters catch highlights through the side glass */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[-0.11, 0.36, side * 0.235]} rotation={[0, 0, -0.12]}>
+          <boxGeometry args={[0.08, 0.5, 0.025]} />
+          <meshStandardMaterial color="#3b413d" roughness={0.56} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+function VehicleInterior({ body }: { body: BodyDefinition }) {
+  const lowerTop = body.wheelRadius + body.lowerHeight
+  const frontSeatX = body.id === 'truck' ? body.length * 0.015 : body.id === 'van' ? body.length * 0.15 : body.length * 0.03
+  const rearSeatX = body.id === 'van' ? -body.length * 0.17 : -body.length * 0.18
+  const seatZ = body.width * 0.22
+  const dashX = glassProfile(body).frontBottom[0] - 0.12
+  const driverZ = body.width * 0.23
+
+  return (
+    <group name="Detailed_Interior">
+      <RoundedBox args={[body.cabinLength * 0.72, 0.1, body.width * 0.72]} radius={0.05} smoothness={2} position={[body.cabinX, lowerTop - 0.08, 0]}>
+        <meshStandardMaterial color="#111411" roughness={0.86} />
+      </RoundedBox>
+      {[-1, 1].map((side) => <Seat key={`front-${side}`} position={[frontSeatX, lowerTop + 0.03, side * seatZ]} />)}
+      {body.id !== 'truck' && [-1, 1].map((side) => <Seat key={`rear-${side}`} position={[rearSeatX, lowerTop + 0.02, side * seatZ]} color="#292e2a" />)}
+
+      {/* dashboard, instrument binnacle and center stack */}
+      <RoundedBox args={[0.34, 0.24, body.width * 0.74]} radius={0.08} smoothness={3} position={[dashX, lowerTop + 0.24, 0]} rotation={[0, 0, 0.06]}>
+        <meshStandardMaterial color="#171b18" roughness={0.7} />
+      </RoundedBox>
+      <RoundedBox args={[0.18, 0.18, 0.52]} radius={0.06} smoothness={3} position={[dashX - 0.08, lowerTop + 0.37, driverZ]}>
+        <meshStandardMaterial color="#0c0e0d" roughness={0.45} />
+      </RoundedBox>
+      <mesh position={[dashX - 0.18, lowerTop + 0.39, driverZ]} rotation={[0, Math.PI / 2, 0]}>
+        <planeGeometry args={[0.36, 0.09]} />
+        <meshStandardMaterial color="#162829" emissive="#69c7cf" emissiveIntensity={0.55} roughness={0.2} />
+      </mesh>
+      <RoundedBox args={[0.78, 0.16, 0.2]} radius={0.06} smoothness={3} position={[body.cabinX, lowerTop + 0.02, 0]}>
+        <meshStandardMaterial color="#151815" roughness={0.55} />
+      </RoundedBox>
+      <mesh position={[body.cabinX + 0.16, lowerTop + 0.13, 0]} rotation={[0, 0, -0.2]}>
+        <cylinderGeometry args={[0.025, 0.035, 0.22, 12]} />
+        <meshStandardMaterial color="#7b827e" metalness={0.72} roughness={0.25} />
+      </mesh>
+
+      {/* steering wheel and column */}
+      <group position={[dashX - 0.08, lowerTop + 0.35, driverZ]} rotation={[0, Math.PI / 2, 0.08]}>
+        <mesh>
+          <torusGeometry args={[0.17, 0.026, 10, 32]} />
+          <meshStandardMaterial color="#111311" roughness={0.65} />
+        </mesh>
+        {[0, 2.1, 4.2].map((angle) => (
+          <mesh key={angle} rotation={[0, 0, angle]}>
+            <boxGeometry args={[0.14, 0.025, 0.025]} />
+            <meshStandardMaterial color="#4f5652" metalness={0.65} roughness={0.25} />
+          </mesh>
+        ))}
+      </group>
+      <mesh position={[dashX - 0.01, lowerTop + 0.35, driverZ]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.025, 0.025, 0.26, 14]} />
+        <meshStandardMaterial color="#303632" metalness={0.62} roughness={0.3} />
+      </mesh>
+
+      {/* axles, differentials and visible suspension under the car */}
+      {[body.length * 0.31, -body.length * 0.32].map((x) => (
+        <group key={`axle-${x}`} position={[x, body.wheelRadius * 0.72, 0]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.045, 0.045, body.width * 0.92, 16]} />
+            <meshStandardMaterial color="#202521" metalness={0.62} roughness={0.42} />
+          </mesh>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.13, 0.13, 0.24, 20]} />
+            <meshStandardMaterial color="#292f2b" metalness={0.5} roughness={0.45} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  )
+}
+
 function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { vehicle: VehicleState; body: BodyDefinition; selectedSlot?: SlotId; onSlotClick: (slot: SlotId) => void }) {
   const sideGlass = useMemo(() => sideGlassGeometry(body), [body])
   useEffect(() => () => sideGlass.dispose(), [sideGlass])
@@ -471,6 +609,20 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
         {glassMaterial}
       </mesh>
 
+      {/* separate wiper arms and blades sit proud of the windscreen */}
+      {[-0.32, 0.32].map((z, index) => (
+        <group key={`wiper-${z}`} position={[frontBottomX + 0.02, glassBottomY + 0.09, z]} rotation={[0.05, 0, index ? -0.22 : 0.22]}>
+          <mesh>
+            <boxGeometry args={[0.025, 0.025, body.width * 0.34]} />
+            <meshStandardMaterial color="#0c0f0d" metalness={0.45} roughness={0.34} />
+          </mesh>
+          <mesh position={[0, 0, index ? -body.width * 0.16 : body.width * 0.16]}>
+            <boxGeometry args={[0.035, 0.035, body.width * 0.22]} />
+            <meshStandardMaterial color="#090b09" roughness={0.7} />
+          </mesh>
+        </group>
+      ))}
+
       {/* mirrors with reflective inserts */}
       {[-1, 1].map((side) => (
         <group key={`mirror-${side}`} position={[frontBottomX - 0.06, lowerTop + body.cabinHeight * 0.25, side * (body.width / 2 + 0.22)]}>
@@ -524,6 +676,30 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
       <mesh position={[-body.length / 2 - 0.05, body.wheelRadius * 0.17, 0]}>
         <boxGeometry args={[0.2, 0.12, body.width * 0.64]} />
         <meshStandardMaterial color="#101310" metalness={0.34} roughness={0.38} />
+      </mesh>
+
+      {/* fog lamps and amber repeater strips give the front fascia game-vehicle readability */}
+      {[-1, 1].map((side) => (
+        <group key={`fog-${side}`} position={[body.length / 2 + 0.1, body.wheelRadius * 0.55, side * body.width * 0.38]}>
+          <mesh rotation={[0, Math.PI / 2, 0]}>
+            <circleGeometry args={[0.07, 24]} />
+            <meshStandardMaterial color="#f4fcdf" emissive="#eaffc6" emissiveIntensity={1.2} toneMapped={false} />
+          </mesh>
+          <mesh position={[0.012, 0.11, 0]}>
+            <boxGeometry args={[0.025, 0.035, 0.2]} />
+            <meshStandardMaterial color="#f2a637" emissive="#f08d1c" emissiveIntensity={1.5} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* GTA-era panel gaps: readable at driving distance without excessive geometry */}
+      <mesh position={[body.length * 0.24, lowerTop + 0.065, 0]}>
+        <boxGeometry args={[0.014, 0.012, body.width * 0.82]} />
+        <meshBasicMaterial color="#111411" transparent opacity={0.48} />
+      </mesh>
+      <mesh position={[-body.length * 0.4, lowerTop + 0.025, 0]}>
+        <boxGeometry args={[0.014, 0.012, body.width * 0.78]} />
+        <meshBasicMaterial color="#111411" transparent opacity={0.45} />
       </mesh>
 
       {/* subtle hood creases */}
@@ -589,6 +765,7 @@ function VehicleModel({ vehicle, activeCategory, pendingPart, selectedSlot, show
   return (
     <group ref={root} name="VehicleDes_Car" rotation={[0, -0.18, 0]}>
       <BodyShell vehicle={vehicle} body={body} />
+      <VehicleInterior body={body} />
       <GlassAndBodyDetails vehicle={vehicle} body={body} selectedSlot={selectedSlot} onSlotClick={onSlotClick} />
 
       {wheelSlots.map((slot) => vehicle.parts[slot] && (
@@ -671,6 +848,11 @@ export default function VehicleScene(props: SceneProps) {
         </mesh>
         <ContactShadows position={[0, -0.015, 0]} scale={12} blur={2.1} opacity={0.54} far={7} resolution={512} color="#252a25" />
         <Grid position={[0, -0.025, 0]} args={[30, 30]} cellSize={0.5} cellThickness={0.38} cellColor="#b3b8b1" sectionSize={2.5} sectionThickness={0.7} sectionColor="#9fa59e" fadeDistance={14} fadeStrength={1.7} infiniteGrid />
+        <EffectComposer multisampling={0}>
+          <N8AO halfRes quality="medium" aoRadius={0.42} distanceFalloff={0.85} intensity={1.45} color="#20251f" />
+          <Bloom intensity={0.38} luminanceThreshold={1.05} luminanceSmoothing={0.22} mipmapBlur />
+          <Vignette offset={0.35} darkness={0.2} />
+        </EffectComposer>
         <CameraRig resetKey={props.viewResetKey} />
       </Canvas>
       {!ready && <div className="canvas-loading">Preparing studio…</div>}

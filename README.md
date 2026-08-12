@@ -8,7 +8,9 @@ VehicleDes is a browser-based 3D vehicle assembler for creators who need custom 
 - Smart attachment slots for wheels, lights, grilles, spoilers, bumpers, and windows
 - High-detail procedural 3D bodies with curved silhouettes, panoramic glass, mirrors, door seams, handles, lighting, plates, exhausts, and underbody details
 - Realistic wheels with tread blocks, ventilated brake rotors, calipers, rim barrels, spokes, hubs, and lug nuts
-- Real-time preview with orbit, zoom, a reflection studio, physically based materials, soft shadows, and an illuminated floor
+- GTA-era game-ready cabin detail: visible seats, dashboard, instrument display, steering wheel, console, axles, and suspension
+- Real body openings for windows and wheel wells instead of painted-on surfaces
+- Real-time preview with orbit, zoom, a reflection studio, physically based materials, ambient occlusion, subtle bloom, soft shadows, and an illuminated floor
 - Per-part materials, metallic body paint, glass tint, and gloss/satin/matte clear-coat finishes
 - One-click part placement or “apply to all” for repeated slots
 - Undo/redo, random concepts, autosave, and portable project JSON
