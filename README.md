@@ -10,12 +10,14 @@ VehicleDes is a browser-based 3D vehicle assembler for creators who need custom 
 - Progressive first-frame loading: usable geometry appears before reflections and post-processing stream in, with adaptive pixel density for slower devices
 - Dedicated Vandal R/T muscle-car architecture with a long power-dome hood, shaker intake, squared shoulders, flared quarters, wide tires, twin stripes, and side pipes
 - Smart attachment slots for wheels, lights, grilles, spoilers, bumpers, and windows
-- Expanded 52-part library with centerlock race wheels, six-element lightblades, ram-air mesh, GT3 swan wing and competition aero package alongside the road, heritage and off-road catalog
+- Expanded 102-part library: 21 wheels, 17 headlights, 17 grilles, 17 spoilers, 16 bumpers, and 14 glass treatments, including race, road, heritage, luxury, utility, EV, drift, rally, and off-road designs
+- Fifty additional procedural designs with distinct geometry and material behavior, from carbon aero and wire wheels through pixel lights, turbine intakes, dual-element wings, touring ducts, and race polycarbonate glazing
 - Muscle-focused library additions: deep-dish wheels, quad projectors, billet grille, street ducktail, and chrome bumpers
 - Realistic body hardware including roof rails, shark-fin antennas, van sliding-door tracks, tow hitches, segmented lamps, third brake lights, parking sensors, recovery points, and drilled wheel hardware
 - Twelve realistic metallic and solid paint presets
-- AAA-style compound-curved bodies with tapered noses, rounded shoulders, separate crowned hood/deck panels, stamped character lines, arched roofs, mirrors, lighting, plates, exhausts, and underbody details
-- Dedicated compound-curved front windshields, rear windscreens, inward-tapered side glass, structural A/B/C pillars, header rails, window sills, and panoramic roof panels
+- Family-specific compound-curved bodies instead of a shared box profile: sports-car coke-bottle surfacing, muscle shoulders, sedan three-box transitions, SUV cladding, truck steps and bed architecture, and van cab-forward stampings
+- Sculpted fender blisters and arches, tapered noses, rounded shoulders, separate crowned hood/deck panels, character lines, arched roofs, mirrors, lighting, plates, exhausts, and connected underbody details
+- Dedicated compound-curved front windshields, rear windscreens, inward-tapered side glass, structural A/B/C pillars, header rails, window sills, and panoramic roof panels; dashboard and rear seating are constrained inside the sloped glass envelopes
 - High-detail wheels with individual tread blocks, drilled ventilated brake rotors, calipers, rim barrels, spokes, hubs, and lug nuts
 - Game-ready cabin detail: stitched and bolstered seats, seat belts, dashboard, illuminated instrument and infotainment displays, vents, rear-view mirror, steering wheel, console, axles, and suspension
 - Real-time preview with orbit, zoom, an HDR reflection studio, physically based clear-coat materials, ambient occlusion, selective bloom, SMAA, soft shadows, and a blurred reflective showroom floor
