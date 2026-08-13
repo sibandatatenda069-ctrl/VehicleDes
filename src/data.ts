@@ -23,7 +23,7 @@ export type SlotId =
   | 'bumper_rear'
   | 'windows'
 
-export type GenerationStyle = 'classic' | 'revival' | 'modern'
+export type GenerationStyle = 'classic' | 'revival' | 'modern' | 'race'
 
 export type BodyDefinition = {
   id: BodyId
@@ -92,6 +92,7 @@ export const bodyGenerations: Record<BodyId, BodyGeneration[]> = {
     { id: 'apex_g1', name: 'Wedge', years: '1989–1998', style: 'classic', description: 'Compact proportions, pop-up-era nose and a low glasshouse.', dimensions: { length: 4.72, width: 1.94, lowerHeight: 0.64, cabinHeight: 0.62, wheelRadius: 0.49, cabinLength: 2.25, cabinX: -0.08 } },
     { id: 'apex_g2', name: 'Road GT', years: '1999–2012', style: 'revival', description: 'Rounded grand-tourer surfacing with a longer, calmer roofline.', dimensions: { length: 4.96, width: 2.04, lowerHeight: 0.68, cabinHeight: 0.72, wheelRadius: 0.53, cabinLength: 2.5, cabinX: -0.15 } },
     { id: 'apex_g3', name: 'Aero', years: '2013–2026', style: 'modern', description: 'Wide-track modern aero with sharp lighting and a cab-rearward stance.', dimensions: {} },
+    { id: 'apex_g4', name: 'GT Competition', years: '2024–2026', style: 'race', description: 'Full competition body with boxed arches, pressure vents, deep aero and a stripped GT cabin.', dimensions: { length: 5.18, width: 2.3, lowerHeight: 0.72, cabinHeight: 0.7, wheelRadius: 0.6, cabinLength: 2.42, cabinX: -0.16 } },
   ],
   muscle: [
     { id: 'vandal_g1', name: 'Golden Era', years: '1967–1973', style: 'classic', description: 'Long hood, short deck, upright glass and chrome-era presence.', dimensions: { length: 5.18, width: 2.08, lowerHeight: 0.8, cabinHeight: 0.7, wheelRadius: 0.54, cabinLength: 2.28, cabinX: -0.38 } },
@@ -126,11 +127,11 @@ export function defaultGeneration(bodyId: BodyId) {
 }
 
 export const categories: CategoryDefinition[] = [
-  { id: 'wheels', label: 'Wheels', icon: CircleDot, count: 10 },
-  { id: 'lights', label: 'Lights', icon: LampDesk, count: 8 },
-  { id: 'grilles', label: 'Grilles', icon: Grid2X2, count: 8 },
-  { id: 'spoilers', label: 'Spoilers', icon: Sparkles, count: 8 },
-  { id: 'bumpers', label: 'Bumpers', icon: RectangleHorizontal, count: 7 },
+  { id: 'wheels', label: 'Wheels', icon: CircleDot, count: 11 },
+  { id: 'lights', label: 'Lights', icon: LampDesk, count: 9 },
+  { id: 'grilles', label: 'Grilles', icon: Grid2X2, count: 9 },
+  { id: 'spoilers', label: 'Spoilers', icon: Sparkles, count: 9 },
+  { id: 'bumpers', label: 'Bumpers', icon: RectangleHorizontal, count: 8 },
   { id: 'windows', label: 'Windows', icon: SquareDashed, count: 6 },
 ]
 
@@ -145,6 +146,7 @@ export const parts: PartDefinition[] = [
   { id: 'wheel_concave', name: 'Concave R10', category: 'wheels', meta: '21 in · Forged', accent: '#aeb8b4' },
   { id: 'wheel_steelie', name: 'Utility Steel', category: 'wheels', meta: '17 in · Heavy duty', accent: '#59605c' },
   { id: 'wheel_beadlock', name: 'Beadlock Pro', category: 'wheels', meta: '20 in · Off-road', accent: '#d2aa5d' },
+  { id: 'wheel_centerlock', name: 'GT Centerlock', category: 'wheels', meta: '19 in · Magnesium', accent: '#9d8865' },
   { id: 'light_matrix', name: 'Matrix Beam', category: 'lights', meta: 'Adaptive LED', accent: '#dffcff' },
   { id: 'light_round', name: 'Halo Round', category: 'lights', meta: 'LED ring', accent: '#fff5b0' },
   { id: 'light_slash', name: 'Slash DRL', category: 'lights', meta: 'Laser LED', accent: '#b8f2ff' },
@@ -153,6 +155,7 @@ export const parts: PartDefinition[] = [
   { id: 'light_projector', name: 'Bi-Xenon Duo', category: 'lights', meta: 'Projector + DRL', accent: '#d8f6ff' },
   { id: 'light_vertical', name: 'Vertical Stack', category: 'lights', meta: 'Four-element LED', accent: '#e4fbff' },
   { id: 'light_rally', name: 'Rally Pod', category: 'lights', meta: 'High-output round', accent: '#fff0bd' },
+  { id: 'light_raceblade', name: 'GT Lightblade', category: 'lights', meta: 'Six-element race LED', accent: '#d9fbff' },
   { id: 'grille_hex', name: 'Hex Flow', category: 'grilles', meta: 'Open mesh', accent: '#5d6563' },
   { id: 'grille_bar', name: 'Linear 7', category: 'grilles', meta: 'Satin alloy', accent: '#c1cac7' },
   { id: 'grille_black', name: 'Blackout', category: 'grilles', meta: 'Closed panel', accent: '#252927' },
@@ -161,6 +164,7 @@ export const parts: PartDefinition[] = [
   { id: 'grille_honeycomb', name: 'Honeycomb GT', category: 'grilles', meta: 'Open performance mesh', accent: '#343a37' },
   { id: 'grille_vertical', name: 'Monument 9', category: 'grilles', meta: 'Vertical chrome vanes', accent: '#d9dfdc' },
   { id: 'grille_ev', name: 'EV Shield', category: 'grilles', meta: 'Closed aero panel', accent: '#60706f' },
+  { id: 'grille_race', name: 'GT Ram Air', category: 'grilles', meta: 'Maximum cooling mesh', accent: '#171b19' },
   { id: 'spoiler_wing', name: 'Circuit Wing', category: 'spoilers', meta: 'High downforce', accent: '#202321' },
   { id: 'spoiler_lip', name: 'Ducktail', category: 'spoilers', meta: 'Low profile', accent: '#b3ff3f' },
   { id: 'spoiler_split', name: 'Aero Split', category: 'spoilers', meta: 'Carbon', accent: '#4f5552' },
@@ -169,6 +173,7 @@ export const parts: PartDefinition[] = [
   { id: 'spoiler_active', name: 'Active Aero', category: 'spoilers', meta: 'Deployable blade', accent: '#242927' },
   { id: 'spoiler_pedestal', name: 'Track Pedestal', category: 'spoilers', meta: 'GT-height wing', accent: '#4c5350' },
   { id: 'spoiler_roof', name: 'Roof Extension', category: 'spoilers', meta: 'SUV / hatch profile', accent: '#9ba29e' },
+  { id: 'spoiler_gt3', name: 'GT3 Swan Wing', category: 'spoilers', meta: 'Chassis-mounted carbon', accent: '#171b19' },
   { id: 'bumper_sport', name: 'Sport Aero', category: 'bumpers', meta: 'Street', accent: '#2f3431' },
   { id: 'bumper_clean', name: 'Clean Line', category: 'bumpers', meta: 'Minimal', accent: '#aeb4b1' },
   { id: 'bumper_rally', name: 'Rally Guard', category: 'bumpers', meta: 'Reinforced', accent: '#4b514e' },
@@ -176,6 +181,7 @@ export const parts: PartDefinition[] = [
   { id: 'bumper_gt', name: 'GT Diffuser', category: 'bumpers', meta: 'Aero channels', accent: '#202522' },
   { id: 'bumper_classic', name: 'Classic Overrider', category: 'bumpers', meta: 'Chrome + rubber', accent: '#cdd4d1' },
   { id: 'bumper_offroad', name: 'Trail Armor', category: 'bumpers', meta: 'Steel recovery points', accent: '#59615d' },
+  { id: 'bumper_race', name: 'GT Aero Package', category: 'bumpers', meta: 'Splitter + dive planes', accent: '#111512' },
   { id: 'window_clear', name: 'Crystal', category: 'windows', meta: 'Clear glass', accent: '#9dd9df' },
   { id: 'window_smoke', name: 'Smoke 30', category: 'windows', meta: '30% tint', accent: '#4f6a6b' },
   { id: 'window_dark', name: 'Night', category: 'windows', meta: '70% tint', accent: '#202b2c' },
@@ -195,22 +201,23 @@ export const categorySlots: Record<CategoryId, SlotId[]> = {
 
 export const initialVehicle: VehicleState = {
   bodyId: 'sports',
-  generationId: 'apex_g3',
-  bodyColor: '#b4f34b',
+  generationId: 'apex_g4',
+  bodyColor: '#e4322d',
   trimColor: '#151816',
   glassColor: '#294548',
   finish: 'gloss',
   projectName: 'Untitled concept',
   parts: {
-    wheel_fl: 'wheel_forged',
-    wheel_fr: 'wheel_forged',
-    wheel_rl: 'wheel_forged',
-    wheel_rr: 'wheel_forged',
-    headlight_l: 'light_matrix',
-    headlight_r: 'light_matrix',
-    grille: 'grille_black',
-    bumper_front: 'bumper_sport',
-    bumper_rear: 'bumper_sport',
+    wheel_fl: 'wheel_centerlock',
+    wheel_fr: 'wheel_centerlock',
+    wheel_rl: 'wheel_centerlock',
+    wheel_rr: 'wheel_centerlock',
+    headlight_l: 'light_raceblade',
+    headlight_r: 'light_raceblade',
+    grille: 'grille_race',
+    spoiler: 'spoiler_gt3',
+    bumper_front: 'bumper_race',
+    bumper_rear: 'bumper_gt',
     windows: 'window_smoke',
   },
   partColors: {},

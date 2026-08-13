@@ -5,11 +5,12 @@ VehicleDes is a browser-based 3D vehicle assembler for creators who need custom 
 ## Features
 
 - Six responsive vehicle families: sports, muscle, sedan, SUV, truck, and van
-- Eighteen selectable design generations—three per body—with distinct years, dimensions, glass angles, surfacing language, trim, and proportions
+- Nineteen selectable designs: three road generations per body plus a dedicated GT Competition generation for the sports family
+- GT Competition detail inspired by modern endurance racers: full connected aero, wide track, pressure louvres, side intakes, roof scoop, race livery, windshield banner, roll cage, extinguisher, tire markings and optional swan-neck wing
 - Progressive first-frame loading: usable geometry appears before reflections and post-processing stream in, with adaptive pixel density for slower devices
 - Dedicated Vandal R/T muscle-car architecture with a long power-dome hood, shaker intake, squared shoulders, flared quarters, wide tires, twin stripes, and side pipes
 - Smart attachment slots for wheels, lights, grilles, spoilers, bumpers, and windows
-- Expanded 47-part library with concave, steel and beadlock wheels; projector, vertical and rally lights; honeycomb, monument and EV grilles; active, pedestal and roof spoilers; GT, classic and off-road bumpers; plus privacy and solar glass
+- Expanded 52-part library with centerlock race wheels, six-element lightblades, ram-air mesh, GT3 swan wing and competition aero package alongside the road, heritage and off-road catalog
 - Muscle-focused library additions: deep-dish wheels, quad projectors, billet grille, street ducktail, and chrome bumpers
 - Realistic body hardware including roof rails, shark-fin antennas, van sliding-door tracks, tow hitches, segmented lamps, third brake lights, parking sensors, recovery points, and drilled wheel hardware
 - Twelve realistic metallic and solid paint presets
