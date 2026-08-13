@@ -340,10 +340,13 @@ function Wheel({
   wide?: boolean
   onClick: () => void
 }) {
-  const isOffroad = id === 'wheel_offroad'
-  const isDisc = id === 'wheel_disc'
+  const isOffroad = id === 'wheel_offroad' || id === 'wheel_beadlock'
+  const isSteelie = id === 'wheel_steelie'
+  const isBeadlock = id === 'wheel_beadlock'
+  const isConcave = id === 'wheel_concave'
+  const isDisc = id === 'wheel_disc' || isSteelie
   const isDeepDish = id === 'wheel_deepdish'
-  const spokeCount = id === 'wheel_mesh' ? 12 : id === 'wheel_classic' || isDeepDish ? 5 : id === 'wheel_turbine' ? 9 : 7
+  const spokeCount = isConcave ? 10 : id === 'wheel_mesh' ? 12 : id === 'wheel_classic' || isDeepDish ? 5 : id === 'wheel_turbine' ? 9 : 7
   const width = isOffroad ? 0.4 : wide ? 0.35 : 0.3
   const side = position[2] > 0 ? 1 : -1
   const outerFace = side * (width / 2 + 0.022)
@@ -400,13 +403,39 @@ function Wheel({
       {/* rim barrel */}
       <mesh position={[0, 0, side * (width / 2 + 0.052)]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[radius * 0.72, radius * 0.72, 0.045, 56]} />
-        <meshPhysicalMaterial color={isDisc || isDeepDish ? '#cbd2cf' : '#171a18'} metalness={0.9} roughness={0.2} clearcoat={0.6} />
+        <meshPhysicalMaterial color={isSteelie ? '#3d4440' : isDisc || isDeepDish ? '#cbd2cf' : '#171a18'} metalness={0.9} roughness={isSteelie ? 0.34 : 0.2} clearcoat={0.6} />
       </mesh>
+      {isSteelie && Array.from({ length: 8 }).map((_, index) => {
+        const angle = (index / 8) * Math.PI * 2
+        return (
+          <mesh key={`steel-vent-${index}`} position={[Math.cos(angle) * radius * 0.43, Math.sin(angle) * radius * 0.43, side * (width / 2 + 0.082)]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[radius * 0.075, radius * 0.075, 0.025, 12]} />
+            <meshBasicMaterial color="#111411" />
+          </mesh>
+        )
+      })}
+      {isBeadlock && (
+        <>
+          <mesh position={[0, 0, side * (width / 2 + 0.09)]}>
+            <torusGeometry args={[radius * 0.62, 0.027, 8, 48]} />
+            <meshStandardMaterial color="#c6a35e" metalness={0.82} roughness={0.25} />
+          </mesh>
+          {Array.from({ length: 12 }).map((_, index) => {
+            const angle = (index / 12) * Math.PI * 2
+            return (
+              <mesh key={`bead-bolt-${index}`} position={[Math.cos(angle) * radius * 0.62, Math.sin(angle) * radius * 0.62, side * (width / 2 + 0.12)]} rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[0.012, 0.012, 0.018, 8]} />
+                <meshStandardMaterial color="#e2d1a8" metalness={1} roughness={0.17} />
+              </mesh>
+            )
+          })}
+        </>
+      )}
       {!isDisc && Array.from({ length: spokeCount }).map((_, index) => {
         const angle = (index / spokeCount) * Math.PI * 2
         return (
-          <mesh key={`spoke-${index}`} position={[0, 0, side * (width / 2 + 0.083)]} rotation={[0, 0, angle]}>
-            <boxGeometry args={[radius * 0.68, radius * (id === 'wheel_mesh' ? 0.045 : 0.07), 0.045]} />
+          <mesh key={`spoke-${index}`} position={[0, 0, side * (width / 2 + (isConcave ? 0.062 : 0.083))]} rotation={[isConcave ? side * 0.12 : 0, 0, angle]}>
+            <boxGeometry args={[radius * (isConcave ? 0.72 : 0.68), radius * (id === 'wheel_mesh' || isConcave ? 0.045 : 0.07), isConcave ? 0.055 : 0.045]} />
             <meshPhysicalMaterial color={color} metalness={0.92} roughness={0.17} clearcoat={0.65} />
           </mesh>
         )
@@ -430,33 +459,37 @@ function Wheel({
 
 function Headlight({ position, id, selected, onClick }: { position: [number, number, number]; id?: string; selected: boolean; onClick: () => void }) {
   const quad = id === 'light_quad'
-  const round = id === 'light_round' || id === 'light_classic' || quad
+  const projector = id === 'light_projector'
+  const rally = id === 'light_rally'
+  const vertical = id === 'light_vertical'
+  const dual = quad || projector
+  const round = id === 'light_round' || id === 'light_classic' || dual || rally
   return (
     <group position={position} onClick={(event) => { event.stopPropagation(); onClick() }} name={`Headlight_${id}`}>
       <pointLight position={[0.18, 0, 0]} color="#dffaff" intensity={0.32} distance={2.4} decay={2} />
-      <RoundedBox args={[0.11, round ? 0.36 : 0.3, quad ? 0.44 : round ? 0.36 : 0.55]} radius={0.07} smoothness={3}>
+      <RoundedBox args={[0.11, rally ? 0.4 : round ? 0.36 : vertical ? 0.44 : 0.3, dual ? 0.44 : round ? 0.38 : 0.55]} radius={0.07} smoothness={3}>
         <meshStandardMaterial color="#131918" metalness={0.58} roughness={0.2} emissive={selected ? '#81c42c' : '#000'} emissiveIntensity={0.35} />
       </RoundedBox>
       {round ? (
         <>
-          {(quad ? [-0.09, 0.09] : [0]).map((z) => (
+          {(dual ? [-0.09, 0.09] : [0]).map((z) => (
             <group key={z} position={[0, 0, z]}>
               <mesh position={[0.068, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-                <torusGeometry args={[quad ? 0.078 : 0.115, quad ? 0.018 : 0.025, 12, 36]} />
+                <torusGeometry args={[dual ? 0.078 : rally ? 0.13 : 0.115, dual ? 0.018 : 0.025, 12, 36]} />
                 <meshStandardMaterial color="#e8fdff" emissive="#d8fbff" emissiveIntensity={4.2} toneMapped={false} />
               </mesh>
               <mesh position={[0.07, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-                <circleGeometry args={[quad ? 0.048 : 0.07, 28]} />
-                <meshPhysicalMaterial color="#d9f7fb" transmission={0.45} opacity={0.75} transparent roughness={0.03} />
+                <circleGeometry args={[dual ? 0.048 : rally ? 0.085 : 0.07, 28]} />
+                <meshPhysicalMaterial color={rally ? '#fff1c8' : '#d9f7fb'} transmission={0.45} opacity={0.78} transparent roughness={0.03} />
               </mesh>
             </group>
           ))}
         </>
       ) : (
         <>
-          {[-0.105, 0, 0.105].map((z) => (
-            <mesh key={z} position={[0.071, 0.02, z]}>
-              <boxGeometry args={[0.02, id === 'light_slash' ? 0.035 : 0.11, 0.06]} />
+          {(vertical ? [-0.135, -0.045, 0.045, 0.135] : [-0.105, 0, 0.105]).map((value) => (
+            <mesh key={value} position={[0.071, vertical ? value : 0.02, vertical ? 0 : value]}>
+              <boxGeometry args={vertical ? [0.02, 0.026, 0.34] : [0.02, id === 'light_slash' ? 0.035 : 0.11, 0.06]} />
               <meshStandardMaterial color="#e9fdff" emissive="#d5faff" emissiveIntensity={4} toneMapped={false} />
             </mesh>
           ))}
@@ -467,7 +500,7 @@ function Headlight({ position, id, selected, onClick }: { position: [number, num
         </>
       )}
       <mesh position={[0.088, 0, 0]}>
-        <boxGeometry args={[0.025, round ? 0.33 : 0.27, quad ? 0.41 : round ? 0.33 : 0.51]} />
+        <boxGeometry args={[0.025, rally ? 0.37 : round ? 0.33 : vertical ? 0.41 : 0.27, dual ? 0.41 : round ? 0.35 : 0.51]} />
         <meshPhysicalMaterial color="#dff9fb" transparent opacity={0.24} transmission={0.42} roughness={0.03} clearcoat={1} />
       </mesh>
     </group>
@@ -475,16 +508,27 @@ function Headlight({ position, id, selected, onClick }: { position: [number, num
 }
 
 function Grille({ body, id, color, selected, onClick }: { body: BodyDefinition; id?: string; color: string; selected: boolean; onClick: () => void }) {
-  const bars = id === 'grille_billet' ? 12 : id === 'grille_bar' ? 8 : id === 'grille_chrome' ? 6 : 5
+  const honeycomb = id === 'grille_honeycomb'
+  const closed = id === 'grille_ev'
+  const bars = id === 'grille_billet' ? 12 : id === 'grille_vertical' ? 9 : id === 'grille_bar' ? 8 : id === 'grille_chrome' ? 6 : 5
   const grilleHeight = body.lowerHeight * 0.46
   return (
     <group position={[body.length / 2 + 0.045, body.wheelRadius + body.lowerHeight * 0.31, 0]} onClick={(e) => { e.stopPropagation(); onClick() }} name={`Grille_${id}`}>
       <RoundedBox args={[0.11, grilleHeight, body.width * 0.49]} radius={0.08} smoothness={3}>
-        <meshStandardMaterial color="#0b0e0d" metalness={0.46} roughness={0.3} emissive={selected ? '#8ccf2d' : '#000'} emissiveIntensity={0.25} />
+        <meshStandardMaterial color={closed ? '#40504f' : '#0b0e0d'} metalness={closed ? 0.62 : 0.46} roughness={closed ? 0.2 : 0.3} emissive={selected ? '#8ccf2d' : '#000'} emissiveIntensity={0.25} />
       </RoundedBox>
-      {Array.from({ length: bars }).map((_, index) => (
+      {honeycomb ? Array.from({ length: 28 }).map((_, index) => {
+        const row = Math.floor(index / 7)
+        const column = index % 7
+        return (
+          <mesh key={index} position={[0.069, (row - 1.5) * grilleHeight * 0.2, (column - 3) * body.width * 0.062 + (row % 2 ? body.width * 0.03 : 0)]} rotation={[0, Math.PI / 2, 0]}>
+            <ringGeometry args={[0.022, 0.036, 6]} />
+            <meshStandardMaterial color="#56605b" metalness={0.68} roughness={0.28} side={THREE.DoubleSide} />
+          </mesh>
+        )
+      }) : !closed && Array.from({ length: bars }).map((_, index) => (
         <RoundedBox key={index} args={[0.032, grilleHeight * 0.82, id === 'grille_hex' ? 0.025 : 0.035]} radius={0.01} smoothness={2} position={[0.067, 0, ((index - (bars - 1) / 2) / bars) * body.width * 0.42]}>
-          <meshStandardMaterial color={id === 'grille_chrome' ? '#d7dfdc' : color} metalness={0.94} roughness={0.17} />
+          <meshStandardMaterial color={id === 'grille_chrome' || id === 'grille_vertical' ? '#d7dfdc' : color} metalness={0.94} roughness={0.17} />
         </RoundedBox>
       ))}
       <mesh position={[0.076, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
@@ -497,9 +541,13 @@ function Grille({ body, id, color, selected, onClick }: { body: BodyDefinition; 
 
 function Spoiler({ body, id, color, selected, onClick }: { body: BodyDefinition; id?: string; color: string; selected: boolean; onClick: () => void }) {
   const lip = id === 'spoiler_lip' || id === 'spoiler_muscle'
-  const height = lip ? 0.07 : id === 'spoiler_heritage' ? 0.28 : 0.42
-  const x = -body.length / 2 + 0.32
-  const y = body.wheelRadius + body.lowerHeight + (lip ? 0.035 : height)
+  const active = id === 'spoiler_active'
+  const roofMount = id === 'spoiler_roof'
+  const pedestal = id === 'spoiler_pedestal'
+  const height = lip ? 0.07 : roofMount ? 0.16 : active ? 0.18 : pedestal ? 0.56 : id === 'spoiler_heritage' ? 0.28 : 0.42
+  const x = roofMount ? glassProfile(body).rearTop[0] - 0.06 : -body.length / 2 + 0.32
+  const mountY = roofMount ? body.wheelRadius + body.lowerHeight + body.cabinHeight + 0.03 : body.wheelRadius + body.lowerHeight
+  const y = mountY + (lip ? 0.035 : height)
   return (
     <group position={[x, y, 0]} onClick={(e) => { e.stopPropagation(); onClick() }} name={`Spoiler_${id}`}>
       {!lip && [-0.63, 0.63].map((z) => (
@@ -507,10 +555,10 @@ function Spoiler({ body, id, color, selected, onClick }: { body: BodyDefinition;
           <meshStandardMaterial color={color} metalness={0.44} roughness={0.26} />
         </RoundedBox>
       ))}
-      <RoundedBox args={[lip ? 0.22 : 0.38, 0.075, body.width * (lip ? 0.73 : 0.91)]} radius={0.04} smoothness={3} rotation={[id === 'spoiler_split' ? 0.06 : -0.025, 0, -0.06]}>
+      <RoundedBox args={[lip ? 0.22 : active ? 0.27 : roofMount ? 0.3 : 0.38, active ? 0.055 : 0.075, body.width * (lip ? 0.73 : roofMount ? 0.82 : active ? 0.76 : 0.91)]} radius={0.04} smoothness={3} rotation={[id === 'spoiler_split' ? 0.06 : active ? -0.12 : -0.025, 0, -0.06]}>
         <meshPhysicalMaterial color={color} metalness={0.56} roughness={0.21} clearcoat={0.7} emissive={selected ? '#92d534' : '#000'} emissiveIntensity={0.18} />
       </RoundedBox>
-      {!lip && [-1, 1].map((side) => (
+      {!lip && !active && !roofMount && [-1, 1].map((side) => (
         <mesh key={side} position={[0, 0.015, side * body.width * 0.46]}>
           <boxGeometry args={[0.34, 0.21, 0.035]} />
           <meshStandardMaterial color={color} metalness={0.45} roughness={0.27} />
@@ -523,10 +571,14 @@ function Spoiler({ body, id, color, selected, onClick }: { body: BodyDefinition;
 function Bumper({ body, rear, id, color, selected, onClick }: { body: BodyDefinition; rear?: boolean; id?: string; color: string; selected: boolean; onClick: () => void }) {
   const x = (rear ? -1 : 1) * (body.length / 2 + 0.055)
   const rally = id === 'bumper_rally'
+  const offroad = id === 'bumper_offroad'
+  const armored = rally || offroad
+  const classic = id === 'bumper_classic'
+  const gt = id === 'bumper_gt'
   return (
     <group position={[x, body.wheelRadius + body.lowerHeight * 0.1, 0]} onClick={(e) => { e.stopPropagation(); onClick() }} name={`${rear ? 'Rear' : 'Front'}_Bumper_${id}`}>
-      <RoundedBox args={[rally ? 0.18 : 0.13, rally ? 0.32 : 0.2, body.width * 0.91]} radius={0.06} smoothness={3}>
-        <meshPhysicalMaterial color={id === 'bumper_chrome' ? '#d7dfdc' : color} metalness={id === 'bumper_chrome' ? 0.94 : rally ? 0.72 : 0.25} roughness={id === 'bumper_chrome' ? 0.16 : 0.34} clearcoat={0.35} emissive={selected ? '#91d22f' : '#000'} emissiveIntensity={0.14} />
+      <RoundedBox args={[armored ? 0.2 : 0.13, armored ? 0.34 : classic ? 0.17 : 0.2, body.width * (offroad ? 0.86 : 0.91)]} radius={classic ? 0.035 : 0.06} smoothness={3}>
+        <meshPhysicalMaterial color={id === 'bumper_chrome' || classic ? '#d7dfdc' : color} metalness={id === 'bumper_chrome' || classic ? 0.94 : armored ? 0.72 : 0.25} roughness={id === 'bumper_chrome' || classic ? 0.16 : 0.34} clearcoat={0.35} emissive={selected ? '#91d22f' : '#000'} emissiveIntensity={0.14} />
       </RoundedBox>
       {!rear && id === 'bumper_sport' && [-0.67, 0.67].map((z) => (
         <mesh key={z} position={[0.09, -0.12, z]} rotation={[0, 0, z > 0 ? -0.16 : 0.16]}>
@@ -534,11 +586,30 @@ function Bumper({ body, rear, id, color, selected, onClick }: { body: BodyDefini
           <meshPhysicalMaterial color="#111412" roughness={0.28} metalness={0.4} clearcoat={0.35} />
         </mesh>
       ))}
-      {!rear && rally && (
-        <mesh position={[0.12, 0.17, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <torusGeometry args={[body.width * 0.34, 0.035, 8, 32, Math.PI]} />
-          <meshStandardMaterial color="#505854" metalness={0.82} roughness={0.25} />
+      {gt && [-0.52, 0, 0.52].map((z) => (
+        <mesh key={`gt-fin-${z}`} position={[rear ? -0.08 : 0.08, -0.14, z]} rotation={[0, 0, rear ? -0.18 : 0.18]}>
+          <boxGeometry args={[0.34, 0.12, 0.035]} />
+          <meshStandardMaterial color="#101310" metalness={0.38} roughness={0.32} />
         </mesh>
+      ))}
+      {classic && [-0.62, 0.62].map((z) => (
+        <RoundedBox key={`overrider-${z}`} args={[0.12, 0.28, 0.12]} radius={0.035} smoothness={3} position={[rear ? -0.08 : 0.08, 0.07, z]}>
+          <meshStandardMaterial color="#d9dfdc" metalness={0.96} roughness={0.14} />
+        </RoundedBox>
+      ))}
+      {!rear && armored && (
+        <>
+          <mesh position={[0.12, 0.17, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <torusGeometry args={[body.width * 0.34, 0.035, 8, 32, Math.PI]} />
+            <meshStandardMaterial color="#505854" metalness={0.82} roughness={0.25} />
+          </mesh>
+          {offroad && [-0.48, 0.48].map((z) => (
+            <mesh key={`recovery-${z}`} position={[0.15, -0.14, z]} rotation={[0, Math.PI / 2, 0]}>
+              <torusGeometry args={[0.06, 0.018, 8, 20]} />
+              <meshStandardMaterial color="#d89a3e" metalness={0.86} roughness={0.22} />
+            </mesh>
+          ))}
+        </>
       )}
     </group>
   )
@@ -753,14 +824,14 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
   const lowerTop = body.wheelRadius + body.lowerHeight
   const profile = glassProfile(body)
   const glassId = vehicle.parts.windows
-  const glassOpacity = glassId === 'window_clear' ? 0.52 : glassId === 'window_dark' ? 0.9 : glassId === 'window_bronze' ? 0.76 : 0.72
-  const glassColor = glassId === 'window_bronze' ? '#75634d' : vehicle.glassColor
+  const glassOpacity = glassId === 'window_clear' ? 0.52 : glassId === 'window_privacy' ? 0.94 : glassId === 'window_dark' ? 0.9 : glassId === 'window_bronze' ? 0.76 : glassId === 'window_blue' ? 0.62 : 0.72
+  const glassColor = glassId === 'window_bronze' ? '#75634d' : glassId === 'window_privacy' ? '#111c1d' : glassId === 'window_blue' ? '#3e7183' : vehicle.glassColor
   const glassMaterial = (
     <meshPhysicalMaterial
       color={glassColor}
       transparent
       opacity={glassOpacity}
-      transmission={glassId === 'window_clear' ? 0.28 : 0.06}
+      transmission={glassId === 'window_clear' ? 0.28 : glassId === 'window_blue' ? 0.18 : glassId === 'window_privacy' ? 0.015 : 0.06}
       thickness={0.035}
       ior={1.45}
       roughness={0.035}
@@ -903,8 +974,19 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
             <boxGeometry args={[0.012, 0.15, body.width * 0.18]} />
             <meshPhysicalMaterial color="#ff6c59" transparent opacity={0.48} transmission={0.18} roughness={0.08} />
           </mesh>
+          <mesh position={[-0.052, 0.048, 0]}>
+            <boxGeometry args={[0.014, 0.03, body.width * 0.14]} />
+            <meshStandardMaterial color="#ff9b32" emissive="#ef7813" emissiveIntensity={0.75} toneMapped={false} />
+          </mesh>
+          <mesh position={[-0.053, -0.052, 0]}>
+            <boxGeometry args={[0.014, 0.035, body.width * 0.11]} />
+            <meshStandardMaterial color="#eef7ed" emissive="#dff5e0" emissiveIntensity={0.45} toneMapped={false} />
+          </mesh>
         </group>
       ))}
+      <RoundedBox args={[0.035, 0.045, body.width * 0.3]} radius={0.018} smoothness={2} position={[profile.rearTop[0] - 0.035, profile.rearTop[1] - 0.1, 0]}>
+        <meshStandardMaterial color="#bd1712" emissive="#ff2d24" emissiveIntensity={1.5} toneMapped={false} />
+      </RoundedBox>
 
       {/* registration plates */}
       {[1, -1].map((direction) => (
@@ -918,6 +1000,12 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
           </mesh>
         </group>
       ))}
+      {[-1, 1].flatMap((direction) => [-0.62, -0.22, 0.22, 0.62].map((z) => (
+        <mesh key={`sensor-${direction}-${z}`} position={[direction * (body.length / 2 + 0.122), body.wheelRadius + body.lowerHeight * 0.1, z]}>
+          <sphereGeometry args={[0.018, 12, 8]} />
+          <meshStandardMaterial color="#7f8883" metalness={0.65} roughness={0.28} />
+        </mesh>
+      )))}
 
       {/* twin exhaust tips and rear diffuser */}
       {[-0.58, 0.58].map((z) => (
@@ -978,6 +1066,7 @@ function BodyShell({ vehicle, body }: { vehicle: VehicleState; body: BodyDefinit
     deck.dispose()
   }, [geometry, roof, hood, deck])
   const lowerTop = body.wheelRadius + body.lowerHeight
+  const profile = glassProfile(body)
 
   return (
     <>
@@ -1073,6 +1162,32 @@ function BodyShell({ vehicle, body }: { vehicle: VehicleState; body: BodyDefinit
           <meshPhysicalMaterial color="#142021" metalness={0.4} roughness={0.06} clearcoat={1} />
         </RoundedBox>
       )}
+      {(body.id === 'suv' || body.id === 'van') && [-1, 1].map((side) => (
+        <FrameBeam
+          key={`roof-rail-${side}`}
+          from={[profile.frontTop[0] - 0.12, lowerTop + body.cabinHeight + 0.12, side * body.width * 0.31]}
+          to={[profile.rearTop[0] + 0.12, lowerTop + body.cabinHeight + 0.1, side * body.width * 0.31]}
+          color={vehicle.trimColor}
+          thickness={0.045}
+          depth={0.055}
+        />
+      ))}
+      {body.generationStyle === 'modern' && body.id !== 'van' && body.id !== 'truck' && (
+        <mesh position={[body.cabinX - body.cabinLength * 0.13, lowerTop + body.cabinHeight + 0.13, 0]}>
+          <coneGeometry args={[0.055, 0.14, 16]} />
+          <meshPhysicalMaterial color={vehicle.bodyColor} {...paintProperties(vehicle)} />
+        </mesh>
+      )}
+      {body.id === 'van' && [-1, 1].map((side) => (
+        <FrameBeam
+          key={`sliding-track-${side}`}
+          from={[-body.length * 0.04, lowerTop + 0.12, side * body.width * 0.498]}
+          to={[-body.length * 0.43, lowerTop + 0.12, side * body.width * 0.498]}
+          color={vehicle.trimColor}
+          thickness={0.025}
+          depth={0.025}
+        />
+      ))}
       {/* pickup bed liner */}
       {body.id === 'truck' && (
         <>
@@ -1087,6 +1202,16 @@ function BodyShell({ vehicle, body }: { vehicle: VehicleState; body: BodyDefinit
               <meshPhysicalMaterial color={vehicle.bodyColor} {...paintProperties(vehicle)} />
             </RoundedBox>
           ))}
+          <group position={[-body.length / 2 - 0.18, body.wheelRadius * 0.76, 0]}>
+            <mesh>
+              <boxGeometry args={[0.34, 0.1, 0.11]} />
+              <meshStandardMaterial color="#202522" metalness={0.72} roughness={0.34} />
+            </mesh>
+            <mesh position={[-0.2, 0, 0]}>
+              <sphereGeometry args={[0.075, 20, 16]} />
+              <meshStandardMaterial color="#929b96" metalness={0.95} roughness={0.18} />
+            </mesh>
+          </group>
         </>
       )}
       {/* The chassis floor is tucked up against the rocker panels instead of

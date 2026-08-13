@@ -9,7 +9,10 @@ VehicleDes is a browser-based 3D vehicle assembler for creators who need custom 
 - Progressive first-frame loading: usable geometry appears before reflections and post-processing stream in, with adaptive pixel density for slower devices
 - Dedicated Vandal R/T muscle-car architecture with a long power-dome hood, shaker intake, squared shoulders, flared quarters, wide tires, twin stripes, and side pipes
 - Smart attachment slots for wheels, lights, grilles, spoilers, bumpers, and windows
+- Expanded 47-part library with concave, steel and beadlock wheels; projector, vertical and rally lights; honeycomb, monument and EV grilles; active, pedestal and roof spoilers; GT, classic and off-road bumpers; plus privacy and solar glass
 - Muscle-focused library additions: deep-dish wheels, quad projectors, billet grille, street ducktail, and chrome bumpers
+- Realistic body hardware including roof rails, shark-fin antennas, van sliding-door tracks, tow hitches, segmented lamps, third brake lights, parking sensors, recovery points, and drilled wheel hardware
+- Twelve realistic metallic and solid paint presets
 - AAA-style compound-curved bodies with tapered noses, rounded shoulders, separate crowned hood/deck panels, stamped character lines, arched roofs, mirrors, lighting, plates, exhausts, and underbody details
 - Dedicated compound-curved front windshields, rear windscreens, inward-tapered side glass, structural A/B/C pillars, header rails, window sills, and panoramic roof panels
 - High-detail wheels with individual tread blocks, drilled ventilated brake rotors, calipers, rim barrels, spokes, hubs, and lug nuts
