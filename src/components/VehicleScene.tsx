@@ -356,12 +356,15 @@ function bodyPanelGeometry(body: BodyDefinition, rear = false) {
   return geometry
 }
 
-function wheelPosition(slot: SlotId, body: BodyDefinition): [number, number, number] {
+function wheelPosition(slot: SlotId, body: BodyDefinition, wheelId?: string): [number, number, number] {
   const frontX = body.length * 0.31
   const rearX = -body.length * 0.32
-  // Tuck the tire beneath the fender instead of placing the wheel centre outside
-  // the body side. The outer sidewall now sits nearly flush with the arch lip.
-  const sideZ = body.width / 2 - (body.id === 'suv' || body.id === 'truck' ? 0.08 : 0.1)
+  const offroad = ['wheel_offroad', 'wheel_beadlock', 'wheel_dakar'].includes(wheelId ?? '')
+  const wideBody = body.id === 'muscle' || body.generationStyle === 'race'
+  const wheelWidth = offroad ? 0.4 : wideBody ? 0.35 : 0.3
+  // Fit the complete tire, rim face, center cap and fasteners beneath the fender.
+  // Decorative wheel hardware is allowed only a small, realistic outward offset.
+  const sideZ = body.width / 2 + 0.035 - (wheelWidth / 2 + 0.055)
   const wheelY = body.wheelRadius
   const map: Record<SlotId, [number, number, number]> = {
     wheel_fl: [frontX, wheelY, sideZ],
@@ -414,8 +417,8 @@ function Wheel({
   const spokeCount = spokeCounts[id ?? ''] ?? 7
   const width = isOffroad ? 0.4 : wide ? 0.35 : 0.3
   const side = position[2] > 0 ? 1 : -1
-  const outerFace = side * (width / 2 + 0.022)
-  const discFace = side * (width / 2 + 0.006)
+  const outerFace = side * (width / 2 - 0.012)
+  const discFace = side * (width / 2 - 0.052)
 
   return (
     <group position={position} onClick={(event) => { event.stopPropagation(); onClick() }} name={`Wheel_${id ?? 'standard'}`}>
@@ -424,20 +427,20 @@ function Wheel({
         <cylinderGeometry args={[radius * 0.97, radius * 0.97, width, isOffroad ? 22 : 56]} />
         <meshStandardMaterial color="#0b0c0b" roughness={0.86} metalness={0.02} />
       </mesh>
-      <mesh position={[0, 0, outerFace]}>
+      <mesh position={[0, 0, outerFace]} scale={[1, 1, 0.26]}>
         <torusGeometry args={[radius * 0.79, radius * 0.18, 12, 56]} />
         <meshStandardMaterial color="#111310" roughness={0.9} />
       </mesh>
       {race && (
         <>
-          <mesh position={[0, 0, outerFace + side * 0.012]}>
+          <mesh position={[0, 0, outerFace + side * 0.022]}>
             <torusGeometry args={[radius * 0.86, 0.012, 6, 64]} />
             <meshBasicMaterial color="#396ce8" toneMapped={false} />
           </mesh>
           {Array.from({ length: 12 }).map((_, index) => {
             const angle = (index / 12) * Math.PI * 2
             return (
-              <mesh key={`sidewall-mark-${index}`} position={[Math.cos(angle) * radius * 0.88, Math.sin(angle) * radius * 0.88, outerFace + side * 0.025]} rotation={[0, 0, angle]}>
+              <mesh key={`sidewall-mark-${index}`} position={[Math.cos(angle) * radius * 0.88, Math.sin(angle) * radius * 0.88, outerFace + side * 0.026]} rotation={[0, 0, angle]}>
                 <boxGeometry args={[0.055, 0.014, 0.008]} />
                 <meshBasicMaterial color={index % 3 === 0 ? '#f3f5f0' : '#3768df'} toneMapped={false} />
               </mesh>
@@ -465,32 +468,32 @@ function Wheel({
         <cylinderGeometry args={[radius * 0.57, radius * 0.57, 0.035, 48]} />
         <meshStandardMaterial color="#777f7b" metalness={0.9} roughness={0.3} />
       </mesh>
-      <mesh position={[0, 0, side * (width / 2 + 0.029)]}>
+      <mesh position={[0, 0, side * (width / 2 - 0.028)]}>
         <torusGeometry args={[radius * 0.45, 0.018, 7, 40]} />
         <meshStandardMaterial color="#c5cbc8" metalness={0.9} roughness={0.18} />
       </mesh>
       {Array.from({ length: 10 }).map((_, index) => {
         const angle = (index / 10) * Math.PI * 2
         return (
-          <mesh key={`rotor-hole-${index}`} position={[Math.cos(angle) * radius * 0.43, Math.sin(angle) * radius * 0.43, side * (width / 2 + 0.036)]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh key={`rotor-hole-${index}`} position={[Math.cos(angle) * radius * 0.43, Math.sin(angle) * radius * 0.43, side * (width / 2 - 0.02)]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.012, 0.012, 0.012, 8]} />
             <meshBasicMaterial color="#202421" />
           </mesh>
         )
       })}
       {/* brake caliper */}
-      <RoundedBox args={[radius * 0.16, radius * 0.42, 0.055]} radius={0.035} smoothness={2} position={[radius * 0.33, 0, side * (width / 2 + 0.045)]}>
+      <RoundedBox args={[radius * 0.16, radius * 0.42, 0.055]} radius={0.035} smoothness={2} position={[radius * 0.33, 0, side * (width / 2 - 0.012)]}>
         <meshStandardMaterial color={id === 'wheel_forged' ? '#c7ff52' : '#d84b39'} metalness={0.28} roughness={0.3} />
       </RoundedBox>
       {/* rim barrel */}
-      <mesh position={[0, 0, side * (width / 2 + 0.052)]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0, side * (width / 2 - 0.01)]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[radius * 0.72, radius * 0.72, 0.045, 56]} />
         <meshPhysicalMaterial color={isSteelie ? '#3d4440' : isDisc || isDeepDish ? '#cbd2cf' : '#171a18'} metalness={0.9} roughness={isSteelie ? 0.34 : 0.2} clearcoat={0.6} />
       </mesh>
       {isSteelie && Array.from({ length: 8 }).map((_, index) => {
         const angle = (index / 8) * Math.PI * 2
         return (
-          <mesh key={`steel-vent-${index}`} position={[Math.cos(angle) * radius * 0.43, Math.sin(angle) * radius * 0.43, side * (width / 2 + 0.082)]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh key={`steel-vent-${index}`} position={[Math.cos(angle) * radius * 0.43, Math.sin(angle) * radius * 0.43, side * (width / 2 + 0.012)]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[radius * 0.075, radius * 0.075, 0.025, 12]} />
             <meshBasicMaterial color="#111411" />
           </mesh>
@@ -498,23 +501,23 @@ function Wheel({
       })}
       {id === 'wheel_retro_turbo' && Array.from({ length: 12 }).map((_, index) => {
         const angle = (index / 12) * Math.PI * 2
-        return <mesh key={`turbo-vane-${index}`} position={[Math.cos(angle) * radius * 0.42, Math.sin(angle) * radius * 0.42, side * (width / 2 + 0.087)]} rotation={[0, 0, angle + 0.34]}><boxGeometry args={[radius * 0.34, 0.028, 0.025]} /><meshStandardMaterial color="#555e59" metalness={0.88} roughness={0.22} /></mesh>
+        return <mesh key={`turbo-vane-${index}`} position={[Math.cos(angle) * radius * 0.42, Math.sin(angle) * radius * 0.42, side * (width / 2 + 0.016)]} rotation={[0, 0, angle + 0.34]}><boxGeometry args={[radius * 0.34, 0.028, 0.025]} /><meshStandardMaterial color="#555e59" metalness={0.88} roughness={0.22} /></mesh>
       })}
       {id === 'wheel_split5' && Array.from({ length: 10 }).map((_, index) => {
         const angle = (index / 10) * Math.PI * 2
-        return <mesh key={`split-bolt-${index}`} position={[Math.cos(angle) * radius * 0.63, Math.sin(angle) * radius * 0.63, side * (width / 2 + 0.116)]}><sphereGeometry args={[0.012, 8, 6]} /><meshStandardMaterial color="#eef1ee" metalness={1} roughness={0.12} /></mesh>
+        return <mesh key={`split-bolt-${index}`} position={[Math.cos(angle) * radius * 0.63, Math.sin(angle) * radius * 0.63, side * (width / 2 + 0.025)]}><sphereGeometry args={[0.012, 8, 6]} /><meshStandardMaterial color="#eef1ee" metalness={1} roughness={0.12} /></mesh>
       })}
-      {id === 'wheel_drag' && <mesh position={[0, 0, side * (width / 2 + 0.099)]}><torusGeometry args={[radius * 0.66, 0.034, 8, 48]} /><meshStandardMaterial color="#c69b4d" metalness={0.94} roughness={0.18} /></mesh>}
+      {id === 'wheel_drag' && <mesh position={[0, 0, side * (width / 2 + 0.015)]}><torusGeometry args={[radius * 0.66, 0.034, 8, 48]} /><meshStandardMaterial color="#c69b4d" metalness={0.94} roughness={0.18} /></mesh>}
       {isBeadlock && (
         <>
-          <mesh position={[0, 0, side * (width / 2 + 0.09)]}>
+          <mesh position={[0, 0, side * (width / 2 + 0.012)]}>
             <torusGeometry args={[radius * 0.62, 0.027, 8, 48]} />
             <meshStandardMaterial color="#c6a35e" metalness={0.82} roughness={0.25} />
           </mesh>
           {Array.from({ length: 12 }).map((_, index) => {
             const angle = (index / 12) * Math.PI * 2
             return (
-              <mesh key={`bead-bolt-${index}`} position={[Math.cos(angle) * radius * 0.62, Math.sin(angle) * radius * 0.62, side * (width / 2 + 0.12)]} rotation={[Math.PI / 2, 0, 0]}>
+              <mesh key={`bead-bolt-${index}`} position={[Math.cos(angle) * radius * 0.62, Math.sin(angle) * radius * 0.62, side * (width / 2 + 0.028)]} rotation={[Math.PI / 2, 0, 0]}>
                 <cylinderGeometry args={[0.012, 0.012, 0.018, 8]} />
                 <meshStandardMaterial color="#e2d1a8" metalness={1} roughness={0.17} />
               </mesh>
@@ -525,24 +528,24 @@ function Wheel({
       {!isDisc && Array.from({ length: spokeCount }).map((_, index) => {
         const angle = (index / spokeCount) * Math.PI * 2
         return (
-          <mesh key={`spoke-${index}`} position={[0, 0, side * (width / 2 + (isConcave ? 0.062 : 0.083))]} rotation={[isConcave ? side * 0.12 : 0, 0, angle]}>
+          <mesh key={`spoke-${index}`} position={[0, 0, side * (width / 2 + (isConcave ? 0.006 : 0.012))]} rotation={[isConcave ? side * 0.12 : 0, 0, angle]}>
             <boxGeometry args={[radius * (isConcave ? 0.72 : 0.68), radius * (id === 'wheel_mesh' || isConcave ? 0.045 : 0.07), isConcave ? 0.055 : 0.045]} />
             <meshPhysicalMaterial color={color} metalness={0.92} roughness={0.17} clearcoat={0.65} />
           </mesh>
         )
       })}
-      {id === 'wheel_aeroring' && <mesh position={[0, 0, side * (width / 2 + 0.102)]}><torusGeometry args={[radius * 0.58, 0.024, 8, 48]} /><meshStandardMaterial color="#74d5dd" emissive="#255e65" emissiveIntensity={0.32} metalness={0.72} /></mesh>}
-      {id === 'wheel_carbon' && <mesh position={[0, 0, side * (width / 2 + 0.104)]}><torusGeometry args={[radius * 0.5, 0.032, 8, 42]} /><meshStandardMaterial color="#111513" metalness={0.66} roughness={0.18} /></mesh>}
-      {id === 'wheel_luxury' && <mesh position={[0, 0, side * (width / 2 + 0.105)]}><torusGeometry args={[radius * 0.35, 0.022, 7, 40]} /><meshStandardMaterial color="#e1e5e2" metalness={0.96} roughness={0.12} /></mesh>}
-      <mesh position={[0, 0, side * (width / 2 + 0.11)]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[radius * 0.13, radius * 0.13, 0.05, 28]} />
+      {id === 'wheel_aeroring' && <mesh position={[0, 0, side * (width / 2 + 0.012)]}><torusGeometry args={[radius * 0.58, 0.024, 8, 48]} /><meshStandardMaterial color="#74d5dd" emissive="#255e65" emissiveIntensity={0.32} metalness={0.72} /></mesh>}
+      {id === 'wheel_carbon' && <mesh position={[0, 0, side * (width / 2 + 0.012)]}><torusGeometry args={[radius * 0.5, 0.032, 8, 42]} /><meshStandardMaterial color="#111513" metalness={0.66} roughness={0.18} /></mesh>}
+      {id === 'wheel_luxury' && <mesh position={[0, 0, side * (width / 2 + 0.012)]}><torusGeometry args={[radius * 0.35, 0.022, 7, 40]} /><meshStandardMaterial color="#e1e5e2" metalness={0.96} roughness={0.12} /></mesh>}
+      <mesh position={[0, 0, side * (width / 2 + 0.014)]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[radius * 0.13, radius * 0.13, 0.04, 28]} />
         <meshStandardMaterial color={isCenterlock ? '#d5a63f' : '#aeb8b4'} metalness={0.95} roughness={0.16} emissive={selected ? '#8fce30' : '#000'} emissiveIntensity={selected ? 0.45 : 0} />
       </mesh>
       {!isCenterlock && Array.from({ length: 5 }).map((_, index) => {
         const angle = (index / 5) * Math.PI * 2
         return (
-          <mesh key={`lug-${index}`} position={[Math.cos(angle) * radius * 0.2, Math.sin(angle) * radius * 0.2, side * (width / 2 + 0.141)]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.018, 0.018, 0.025, 10]} />
+          <mesh key={`lug-${index}`} position={[Math.cos(angle) * radius * 0.2, Math.sin(angle) * radius * 0.2, side * (width / 2 + 0.035)]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.018, 0.018, 0.018, 10]} />
             <meshStandardMaterial color="#dce1df" metalness={1} roughness={0.12} />
           </mesh>
         )
@@ -1666,7 +1669,7 @@ function VehicleModel({ vehicle, activeCategory, pendingPart, selectedSlot, show
           id={vehicle.parts[slot]}
           color={vehicle.partColors[slot] ?? '#aeb6b2'}
           radius={body.wheelRadius * (['wheel_offroad', 'wheel_beadlock', 'wheel_dakar'].includes(vehicle.parts[slot] ?? '') ? 1.07 : 1)}
-          position={wheelPosition(slot, body)}
+          position={wheelPosition(slot, body, vehicle.parts[slot])}
           selected={selectedSlot === slot}
           wide={body.id === 'muscle' || body.generationStyle === 'race'}
           race={body.generationStyle === 'race'}
@@ -1684,7 +1687,7 @@ function VehicleModel({ vehicle, activeCategory, pendingPart, selectedSlot, show
       {vehicle.parts.bumper_rear && <Bumper rear body={body} id={vehicle.parts.bumper_rear} color={vehicle.partColors.bumper_rear ?? vehicle.trimColor} selected={selectedSlot === 'bumper_rear'} onClick={() => onSlotClick('bumper_rear')} />}
 
       {showSlots && compatibleSlots.map((slot) => (
-        <SlotMarker key={slot} position={wheelPosition(slot, body)} label={slot.replace(/_/g, ' ')} onClick={() => onSlotClick(slot)} />
+        <SlotMarker key={slot} position={wheelPosition(slot, body, wheelSlots.includes(slot) ? pendingPart ?? vehicle.parts[slot] : undefined)} label={slot.replace(/_/g, ' ')} onClick={() => onSlotClick(slot)} />
       ))}
     </group>
   )
