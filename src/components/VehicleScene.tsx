@@ -341,8 +341,10 @@ function bodyPanelGeometry(body: BodyDefinition, rear = false) {
   for (let i = 0; i <= xSegments; i += 1) {
     const t = i / xSegments
     const x = THREE.MathUtils.lerp(innerX, outerX, t)
-    const endDrop = t * t * (rear ? 0.09 : 0.14)
-    const halfWidth = THREE.MathUtils.lerp(body.width * 0.38, body.width * (rear ? 0.41 : 0.39), t)
+    const endDrop = t * t * (rear ? 0.09 : body.id === 'sports' ? 0.2 : 0.14)
+    const innerWidth = body.width * (body.id === 'sports' ? 0.37 : 0.38)
+    const outerWidth = body.width * (rear ? (body.id === 'sports' ? 0.4 : 0.41) : body.id === 'sports' ? 0.29 : 0.39)
+    const halfWidth = THREE.MathUtils.lerp(innerWidth, outerWidth, t)
     for (let j = 0; j <= widthSegments; j += 1) {
       const across = (j / widthSegments) * 2 - 1
       const crown = (1 - across * across) * (rear ? 0.035 : 0.055)
@@ -371,8 +373,9 @@ function wheelPosition(slot: SlotId, body: BodyDefinition, wheelId?: string): [n
   const frontX = body.length * 0.31
   const rearX = -body.length * 0.32
   const offroad = ['wheel_offroad', 'wheel_beadlock', 'wheel_dakar'].includes(wheelId ?? '')
+  const utilityBody = ['suv', 'truck', 'van'].includes(body.id)
   const wideBody = body.id === 'muscle' || body.generationStyle === 'race'
-  const wheelWidth = offroad ? 0.4 : wideBody ? 0.35 : 0.3
+  const wheelWidth = offroad ? (utilityBody ? 0.4 : 0.35) : wideBody ? 0.35 : 0.3
   // Place the tire sidewall close to the painted arch lip now that the body has
   // real wheel openings. Race, muscle and off-road stances sit slightly wider,
   // while the outer hardware remains inside the lip's physical envelope.
@@ -403,6 +406,7 @@ function Wheel({
   selected,
   wide,
   race,
+  utility,
   onClick,
 }: {
   position: [number, number, number]
@@ -412,6 +416,7 @@ function Wheel({
   selected: boolean
   wide?: boolean
   race?: boolean
+  utility?: boolean
   onClick: () => void
 }) {
   const isOffroad = id === 'wheel_offroad' || id === 'wheel_beadlock' || id === 'wheel_dakar'
@@ -428,7 +433,7 @@ function Wheel({
     wheel_dakar: 8, wheel_luxury: 15,
   }
   const spokeCount = spokeCounts[id ?? ''] ?? 7
-  const width = isOffroad ? 0.4 : wide ? 0.35 : 0.3
+  const width = isOffroad ? (utility ? 0.4 : 0.35) : wide ? 0.35 : 0.3
   const side = position[2] > 0 ? 1 : -1
   const outerFace = side * (width / 2 - 0.012)
   const discFace = side * (width / 2 - 0.052)
@@ -444,7 +449,7 @@ function Wheel({
         <torusGeometry args={[radius * 0.79, radius * 0.18, 12, 56]} />
         <meshStandardMaterial color="#111310" roughness={0.9} />
       </mesh>
-      {race && (
+      {race && !isOffroad && (
         <>
           <mesh position={[0, 0, outerFace + side * 0.022]}>
             <torusGeometry args={[radius * 0.86, 0.012, 6, 64]} />
@@ -461,21 +466,29 @@ function Wheel({
           })}
         </>
       )}
-      {/* individual tread blocks */}
-      {Array.from({ length: isOffroad ? 20 : 28 }).map((_, index) => {
-        const angle = (index / (isOffroad ? 20 : 28)) * Math.PI * 2
+      {/* Flush tread blocks: shallow enough to read as molded rubber instead of
+          the long spikes visible in the supplied Apex screenshots. */}
+      {Array.from({ length: isOffroad ? 24 : 32 }).map((_, index) => {
+        const count = isOffroad ? 24 : 32
+        const angle = (index / count) * Math.PI * 2
         return (
           <mesh
             key={`tread-${index}`}
-            position={[Math.cos(angle) * radius * 0.98, Math.sin(angle) * radius * 0.98, 0]}
-            rotation={[0, 0, angle]}
+            position={[Math.cos(angle) * radius * 0.974, Math.sin(angle) * radius * 0.974, 0]}
+            rotation={[0, 0, angle + (index % 2 ? 0.05 : -0.05)]}
             castShadow
           >
-            <boxGeometry args={[isOffroad ? 0.12 : 0.055, isOffroad ? 0.09 : 0.045, width + 0.035]} />
+            <boxGeometry args={[isOffroad ? 0.032 : 0.022, isOffroad ? 0.09 : 0.065, width + 0.012]} />
             <meshStandardMaterial color="#080908" roughness={0.96} />
           </mesh>
         )
       })}
+      {[-0.28, 0, 0.28].map((band) => (
+        <mesh key={`tread-rib-${band}`} position={[0, 0, band * width]}>
+          <torusGeometry args={[radius * 0.968, isOffroad ? 0.012 : 0.008, 6, 64]} />
+          <meshStandardMaterial color="#111310" roughness={0.94} />
+        </mesh>
+      ))}
       {/* ventilated brake rotor */}
       <mesh position={[0, 0, discFace]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[radius * 0.57, radius * 0.57, 0.035, 48]} />
@@ -821,8 +834,8 @@ function SlotMarker({ position, label, onClick }: { position: [number, number, n
 function FenderArches({ body, vehicle }: { body: BodyDefinition; vehicle: VehicleState }) {
   const paint = paintProperties(vehicle)
   const xPositions = [body.length * 0.31, -body.length * 0.32]
-  const oversizedTires = wheelSlots.some((slot) => ['wheel_offroad', 'wheel_beadlock', 'wheel_dakar'].includes(vehicle.parts[slot] ?? ''))
-  const archRadius = body.wheelRadius * (oversizedTires ? 1.19 : 1.12)
+  const oversizedTires = ['suv', 'truck', 'van'].includes(body.id) && wheelSlots.some((slot) => ['wheel_offroad', 'wheel_beadlock', 'wheel_dakar'].includes(vehicle.parts[slot] ?? ''))
+  const archRadius = body.wheelRadius * (oversizedTires ? 1.18 : 1.12)
   return (
     <>
       {[-1, 1].flatMap((side) => xPositions.map((x) => (
@@ -1138,7 +1151,7 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
   const lowerTop = body.wheelRadius + body.lowerHeight
   const profile = glassProfile(body)
   const widths = glassWidths(body)
-  const exhaustPositions = body.id === 'muscle' || (body.id === 'van' && body.generationStyle === 'modern') ? [] : body.generationStyle === 'race' ? [-0.7, -0.48, 0.48, 0.7] : body.id === 'truck' ? [0.52] : [-0.58, 0.58]
+  const exhaustPositions = body.id === 'muscle' || (body.id === 'van' && body.generationStyle === 'modern') ? [] : body.generationStyle === 'race' ? [-0.55, 0.55] : body.id === 'truck' ? [0.52] : [-0.58, 0.58]
   const glassId = vehicle.parts.windows
   const glassOpacity: Record<string, number> = {
     window_clear: 0.52, window_privacy: 0.94, window_dark: 0.9, window_bronze: 0.76,
@@ -1317,7 +1330,7 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
           </mesh>
         </group>
       ))}
-      {[-1, 1].flatMap((direction) => [-0.62, -0.22, 0.22, 0.62].map((z) => (
+      {body.generationStyle !== 'race' && [-1, 1].flatMap((direction) => [-0.62, -0.22, 0.22, 0.62].map((z) => (
         <mesh key={`sensor-${direction}-${z}`} position={[direction * (body.length / 2 + 0.122), body.wheelRadius + body.lowerHeight * 0.1, z]}>
           <sphereGeometry args={[0.018, 12, 8]} />
           <meshStandardMaterial color="#7f8883" metalness={0.65} roughness={0.28} />
@@ -1331,13 +1344,15 @@ function GlassAndBodyDetails({ vehicle, body, selectedSlot, onSlotClick }: { veh
           <meshStandardMaterial color="#59605d" metalness={0.95} roughness={0.19} side={THREE.DoubleSide} />
         </mesh>
       ))}
-      <RoundedBox args={[0.2, 0.12, body.width * (body.id === 'truck' || body.id === 'van' ? 0.5 : 0.64)]} radius={0.035} smoothness={3} position={[-body.length / 2 - 0.05, body.wheelRadius * 0.82, 0]}>
-        <meshStandardMaterial color="#101310" metalness={0.34} roughness={0.38} />
-      </RoundedBox>
-      {(body.id === 'sports' || body.generationStyle === 'race') && [-0.48, -0.24, 0, 0.24, 0.48].map((z) => <mesh key={`diffuser-fin-${z}`} position={[-body.length / 2 - 0.13, body.wheelRadius * 0.79, z]}><boxGeometry args={[0.3, 0.12, 0.025]} /><meshStandardMaterial color="#090c0a" metalness={0.45} roughness={0.3} /></mesh>)}
+      {!vehicle.parts.bumper_rear && <>
+        <RoundedBox args={[0.2, 0.12, body.width * (body.id === 'truck' || body.id === 'van' ? 0.5 : 0.64)]} radius={0.035} smoothness={3} position={[-body.length / 2 - 0.05, body.wheelRadius * 0.82, 0]}>
+          <meshStandardMaterial color="#101310" metalness={0.34} roughness={0.38} />
+        </RoundedBox>
+        {(body.id === 'sports' || body.generationStyle === 'race') && [-0.48, -0.24, 0, 0.24, 0.48].map((z) => <mesh key={`diffuser-fin-${z}`} position={[-body.length / 2 - 0.13, body.wheelRadius * 0.79, z]}><boxGeometry args={[0.3, 0.12, 0.025]} /><meshStandardMaterial color="#090c0a" metalness={0.45} roughness={0.3} /></mesh>)}
+      </>}
 
-      {/* fog lamps and amber repeater strips give the front fascia game-vehicle readability */}
-      {[-1, 1].map((side) => (
+      {/* Road fog lamps stay off competition bodies, which use the selected race bumper. */}
+      {body.generationStyle !== 'race' && [-1, 1].map((side) => (
         <group key={`fog-${side}`} position={[body.length / 2 + 0.1, body.wheelRadius + body.lowerHeight * 0.09, side * body.width * 0.38]}>
           <mesh rotation={[0, Math.PI / 2, 0]}>
             <circleGeometry args={[0.07, 24]} />
@@ -1568,9 +1583,9 @@ function BodyShell({ vehicle, body }: { vehicle: VehicleState; body: BodyDefinit
           <RoundedBox args={[0.34, 0.4, body.width * 0.9]} radius={0.08} smoothness={4} position={[body.length / 2 - 0.02, body.wheelRadius + body.lowerHeight * 0.1, 0]} castShadow>
             <meshPhysicalMaterial color={vehicle.bodyColor} {...paintProperties(vehicle)} />
           </RoundedBox>
-          <RoundedBox args={[0.76, 0.045, body.width * 1.02]} radius={0.025} smoothness={3} position={[body.length / 2 + 0.16, body.wheelRadius * 0.79, 0]}>
+          {!vehicle.parts.bumper_front && <RoundedBox args={[0.76, 0.045, body.width * 1.02]} radius={0.025} smoothness={3} position={[body.length / 2 + 0.16, body.wheelRadius * 0.79, 0]}>
             <meshStandardMaterial color="#0b0e0c" metalness={0.54} roughness={0.24} />
-          </RoundedBox>
+          </RoundedBox>}
           {[-1, 1].map((side) => (
             <group key={`race-aero-${side}`}>
               <RoundedBox args={[body.length * 0.55, 0.13, 0.13]} radius={0.035} smoothness={3} position={[-body.length * 0.02, body.wheelRadius * 0.88, side * body.width * 0.515]}>
@@ -1579,8 +1594,8 @@ function BodyShell({ vehicle, body }: { vehicle: VehicleState; body: BodyDefinit
               <RoundedBox args={[0.62, 0.42, 0.035]} radius={0.11} smoothness={4} position={[-body.length * 0.12, lowerTop - 0.23, side * body.width * 0.503]} rotation={[0, 0, -0.16]}>
                 <meshStandardMaterial color="#080b09" metalness={0.32} roughness={0.33} />
               </RoundedBox>
-              {[-0.15, 0, 0.15].map((offset) => (
-                <RoundedBox key={offset} args={[0.34, 0.018, 0.075]} radius={0.02} smoothness={2} position={[body.length * 0.31 + offset, lowerTop + 0.11, side * 0.5]} rotation={[0, 0, -0.05]}>
+              {[-0.15, -0.05, 0.05, 0.15].map((offset) => (
+                <RoundedBox key={offset} args={[0.2, 0.012, 0.055]} radius={0.016} smoothness={2} position={[body.length * 0.31 + offset, lowerTop + 0.065, side * 0.47]} rotation={[0, 0, -0.045]}>
                   <meshStandardMaterial color="#0b0e0c" metalness={0.42} roughness={0.28} />
                 </RoundedBox>
               ))}
@@ -1686,11 +1701,12 @@ function VehicleModel({ vehicle, activeCategory, pendingPart, selectedSlot, show
           key={slot}
           id={vehicle.parts[slot]}
           color={vehicle.partColors[slot] ?? '#aeb6b2'}
-          radius={body.wheelRadius * (['wheel_offroad', 'wheel_beadlock', 'wheel_dakar'].includes(vehicle.parts[slot] ?? '') ? 1.07 : 1)}
+          radius={body.wheelRadius * (['suv', 'truck', 'van'].includes(body.id) && ['wheel_offroad', 'wheel_beadlock', 'wheel_dakar'].includes(vehicle.parts[slot] ?? '') ? 1.05 : 1)}
           position={wheelPosition(slot, body, vehicle.parts[slot])}
           selected={selectedSlot === slot}
           wide={body.id === 'muscle' || body.generationStyle === 'race'}
           race={body.generationStyle === 'race'}
+          utility={['suv', 'truck', 'van'].includes(body.id)}
           onClick={() => onSlotClick(slot)}
         />
       ))}
