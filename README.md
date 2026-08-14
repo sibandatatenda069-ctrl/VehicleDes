@@ -15,9 +15,9 @@ VehicleDes is a browser-based 3D vehicle assembler for creators who need custom 
 - Muscle-focused library additions: deep-dish wheels, quad projectors, billet grille, street ducktail, and chrome bumpers
 - Realistic body hardware including roof rails, shark-fin antennas, van sliding-door tracks, tow hitches, segmented lamps, third brake lights, parking sensors, recovery points, and drilled wheel hardware
 - Twelve realistic metallic and solid paint presets
-- Fresh family-specific body architecture built from independent longitudinal design envelopes: low coke-bottle sports cars, long-hood muscle cars, true three-box sedans, upright SUVs, open-bed trucks, and cab-forward vans
-- High-density compound surfacing with smooth shoulder highlights, tucked rockers, family-specific nose and tail heights, real wheel openings, recessed wheel wells, crowned hood/deck panels, and double-curved glazing
-- Adaptive family fascias, surface-projected trim and shut lines, correctly proportioned grille and lamp packages, distinctive rear signatures, powertrain-appropriate exhaust layouts, and shell-connected diffusers
+- Family-specific, high-density compound-curved bodies instead of a shared box profile: sports-car coke-bottle surfacing, muscle shoulders, sedan three-box transitions, SUV cladding, truck steps and bed architecture, and van cab-forward stampings
+- Adaptive family fascias, correctly proportioned grille and lamp packages, distinctive rear light signatures, powertrain-appropriate exhaust layouts, and shell-connected diffusers
+- Sculpted fender blisters and arches, tapered noses, rounded shoulders, tucked rockers, separate crowned hood/deck panels, character lines, arched roofs, mirrors, lighting, plates, exhausts, and connected underbody details
 - Dedicated compound-curved front windshields, rear windscreens, inward-tapered side glass, structural A/B/C pillars, header rails, window sills, and panoramic roof panels; dashboard and rear seating are constrained inside the sloped glass envelopes
 - High-detail wheels with individual tread blocks, drilled ventilated brake rotors, calipers, rim barrels, spokes, hubs, and lug nuts
 - Game-ready cabin detail: stitched and bolstered seats, seat belts, dashboard, illuminated instrument and infotainment displays, vents, rear-view mirror, steering wheel, console, axles, and suspension
