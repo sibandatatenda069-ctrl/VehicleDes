@@ -139,8 +139,8 @@ function sculptFactors(body: BodyDefinition, t: number) {
 
 function shellGeometry(body: BodyDefinition) {
   const { length, width, wheelRadius, lowerHeight } = body
-  const xSegments = body.generationStyle === 'classic' ? 24 : body.generationStyle === 'race' ? 38 : 30
-  const ringSegments = body.generationStyle === 'classic' ? 32 : body.generationStyle === 'race' ? 48 : 40
+  const xSegments = body.generationStyle === 'classic' ? 36 : body.generationStyle === 'race' ? 52 : 42
+  const ringSegments = body.generationStyle === 'classic' ? 48 : body.generationStyle === 'race' ? 64 : 56
   const positions: number[] = []
   const indices: number[] = []
 
@@ -183,6 +183,8 @@ function shellGeometry(body: BodyDefinition) {
     }
   }
 
+  const axleXs = [length * 0.31, -length * 0.32]
+  const wheelOpeningRadius = wheelRadius * 1.13
   for (let i = 0; i < xSegments; i += 1) {
     for (let j = 0; j < ringSegments; j += 1) {
       const nextJ = (j + 1) % ringSegments
@@ -190,6 +192,15 @@ function shellGeometry(body: BodyDefinition) {
       const b = (i + 1) * ringSegments + j
       const c = (i + 1) * ringSegments + nextJ
       const d = i * ringSegments + nextJ
+      const vertices = [a, b, c, d]
+      const midX = vertices.reduce((sum, vertex) => sum + positions[vertex * 3], 0) / 4
+      const midY = vertices.reduce((sum, vertex) => sum + positions[vertex * 3 + 1], 0) / 4
+      const midZ = vertices.reduce((sum, vertex) => sum + positions[vertex * 3 + 2], 0) / 4
+      const outerFlank = Math.abs(midZ) > width * 0.33
+      const insideWheelOpening = axleXs.some((axleX) => Math.hypot(midX - axleX, midY - wheelRadius) < wheelOpeningRadius)
+      // Leave an actual opening in each outer body flank. Previously the tire was
+      // merely placed in front of a solid shell, forcing it to stick outside.
+      if (outerFlank && insideWheelOpening) continue
       indices.push(a, b, d, b, c, d)
     }
   }
@@ -814,8 +825,13 @@ function FenderArches({ body, vehicle }: { body: BodyDefinition; vehicle: Vehicl
     <>
       {[-1, 1].flatMap((side) => xPositions.map((x) => (
         <group key={`${side}-${x}`} position={[x, body.wheelRadius, side * (body.width / 2 + 0.06)]}>
-          {/* The shell generator already swells at each axle. These thin lips finish
-              that integrated fender opening without placing a solid blob in the tire. */}
+          {/* The shell generator now has real wheel openings. A recessed liner
+              closes the well behind the tire while the thin painted lip follows
+              the body surface instead of intersecting the wheel. */}
+          <mesh position={[0, 0, -side * 0.48]}>
+            <circleGeometry args={[archRadius - 0.04, 64]} />
+            <meshStandardMaterial color="#090b0a" roughness={0.86} metalness={0.04} side={THREE.DoubleSide} />
+          </mesh>
           <mesh castShadow>
             <torusGeometry args={[archRadius, 0.045, 10, 64, Math.PI]} />
             <meshPhysicalMaterial color={vehicle.bodyColor} {...paint} />
