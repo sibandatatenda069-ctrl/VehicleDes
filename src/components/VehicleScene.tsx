@@ -373,9 +373,11 @@ function wheelPosition(slot: SlotId, body: BodyDefinition, wheelId?: string): [n
   const offroad = ['wheel_offroad', 'wheel_beadlock', 'wheel_dakar'].includes(wheelId ?? '')
   const wideBody = body.id === 'muscle' || body.generationStyle === 'race'
   const wheelWidth = offroad ? 0.4 : wideBody ? 0.35 : 0.3
-  // Fit the complete tire, rim face, center cap and fasteners beneath the fender.
-  // Decorative wheel hardware is allowed only a small, realistic outward offset.
-  const sideZ = body.width / 2 + 0.035 - (wheelWidth / 2 + 0.055)
+  // Place the tire sidewall close to the painted arch lip now that the body has
+  // real wheel openings. Race, muscle and off-road stances sit slightly wider,
+  // while the outer hardware remains inside the lip's physical envelope.
+  const sidewallTarget = body.generationStyle === 'race' ? 0.065 : offroad ? 0.06 : body.id === 'muscle' ? 0.055 : 0.05
+  const sideZ = body.width / 2 + sidewallTarget - (wheelWidth / 2 + 0.018)
   const wheelY = body.wheelRadius
   const map: Record<SlotId, [number, number, number]> = {
     wheel_fl: [frontX, wheelY, sideZ],
