@@ -359,7 +359,9 @@ function bodyPanelGeometry(body: BodyDefinition, rear = false) {
 function wheelPosition(slot: SlotId, body: BodyDefinition): [number, number, number] {
   const frontX = body.length * 0.31
   const rearX = -body.length * 0.32
-  const sideZ = body.width / 2 + 0.12
+  // Tuck the tire beneath the fender instead of placing the wheel centre outside
+  // the body side. The outer sidewall now sits nearly flush with the arch lip.
+  const sideZ = body.width / 2 - (body.id === 'suv' || body.id === 'truck' ? 0.08 : 0.1)
   const wheelY = body.wheelRadius
   const map: Record<SlotId, [number, number, number]> = {
     wheel_fl: [frontX, wheelY, sideZ],
@@ -803,21 +805,21 @@ function SlotMarker({ position, label, onClick }: { position: [number, number, n
 function FenderArches({ body, vehicle }: { body: BodyDefinition; vehicle: VehicleState }) {
   const paint = paintProperties(vehicle)
   const xPositions = [body.length * 0.31, -body.length * 0.32]
+  const oversizedTires = wheelSlots.some((slot) => ['wheel_offroad', 'wheel_beadlock', 'wheel_dakar'].includes(vehicle.parts[slot] ?? ''))
+  const archRadius = body.wheelRadius * (oversizedTires ? 1.19 : 1.12)
   return (
     <>
       {[-1, 1].flatMap((side) => xPositions.map((x) => (
-        <group key={`${side}-${x}`} position={[x, body.wheelRadius, side * (body.width / 2 + 0.082)]}>
-          <mesh position={[0, body.wheelRadius * 0.24, -side * 0.055]} scale={[body.wheelRadius * 1.28, body.wheelRadius * 0.76, 0.12]} castShadow>
-            <sphereGeometry args={[1, 32, 18]} />
+        <group key={`${side}-${x}`} position={[x, body.wheelRadius, side * (body.width / 2 + 0.06)]}>
+          {/* The shell generator already swells at each axle. These thin lips finish
+              that integrated fender opening without placing a solid blob in the tire. */}
+          <mesh castShadow>
+            <torusGeometry args={[archRadius, 0.045, 10, 64, Math.PI]} />
             <meshPhysicalMaterial color={vehicle.bodyColor} {...paint} />
           </mesh>
-          <mesh>
-            <torusGeometry args={[body.wheelRadius * 1.09, 0.055, 10, 48, Math.PI]} />
-            <meshPhysicalMaterial color={vehicle.bodyColor} {...paint} />
-          </mesh>
-          <mesh position={[0, 0, -side * 0.018]}>
-            <torusGeometry args={[body.wheelRadius * 1.02, 0.027, 8, 48, Math.PI]} />
-            <meshStandardMaterial color="#111411" roughness={0.5} />
+          <mesh position={[0, 0, -side * 0.025]}>
+            <torusGeometry args={[archRadius - 0.035, 0.025, 8, 64, Math.PI]} />
+            <meshStandardMaterial color="#0d100e" roughness={0.62} />
           </mesh>
         </group>
       )))}
